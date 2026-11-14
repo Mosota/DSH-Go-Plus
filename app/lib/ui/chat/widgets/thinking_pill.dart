@@ -89,7 +89,7 @@ String _firstLine(String text) {
 class _ThinkingPillState extends State<ThinkingPill> {
   /// 步骤行默认展开(用户点一下可以收起):聊天里每一步的内容直接可见,
   /// 不再先给一行摘要、要再点一次才看得到。
-  bool _expanded = true;
+  bool _expanded = false;
 
   /// 思考进行中被手动收起。以前 [active] 直接决定是否展开，点也收不起来；
   /// 现在用户随时可以收，思考继续在后台跑。
