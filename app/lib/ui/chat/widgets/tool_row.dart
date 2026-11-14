@@ -99,7 +99,7 @@ class _ToolRowState extends State<ToolRow> {
 
   ToolView get view => _view = ToolView.of(widget.item, _view);
 
-  bool _expandedFor() => _toggled ?? widget.card == ToolCardPlacement.inline;
+  bool _expandedFor() => _toggled ?? false;
 
   @override
   Widget build(BuildContext context) {
@@ -630,7 +630,7 @@ class ToolGroup extends StatefulWidget {
 
 class _ToolGroupState extends State<ToolGroup> {
   /// 步骤行默认展开:一组的每次调用直接可见,点一下可收起。
-  bool _expanded = true;
+  bool _expanded = false;
 
   /// 收起时露在外面的那一批:新来的调用和还在跑的。这一批都结束了也先
   /// 留着,下一批来了再平滑换掉,而不是先缩回去、再长出来。
