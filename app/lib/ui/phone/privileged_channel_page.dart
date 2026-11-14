@@ -19,7 +19,7 @@ import 'restricted_settings_guide.dart' show RomFamily;
 /// Group spacing: 24 between consecutive cards.
 const _groupMargin = EdgeInsets.fromLTRB(16, 12, 16, 12);
 
-/// 特权通道: the shell-uid channel behind both 不打扰模式 and the model's
+/// 特权通道: the shell-uid channel behind both 虚拟屏 and the model's
 /// `shell`/`device` tools — Shizuku (or a compatible manager) or the app's own
 /// wireless-debugging connection. Off by default; the page says plainly what it
 /// costs and what it doesn't do.
@@ -111,7 +111,7 @@ class _PhonePrivilegedPageState extends ConsumerState<PhonePrivilegedPage> {
 
     return AppPage.list(
       title: '特权通道',
-      subtitle: const Text('给不打扰模式和模型的 shell 工具提供 shell 身份'),
+      subtitle: const Text('给虚拟屏和模型的 shell 工具提供 shell 身份'),
       children: [
         if (!usable) PhoneNote(tone: NoteTone.warn, text: l10n.phoneDndUnsupported),
         ListPageCard(
@@ -233,7 +233,7 @@ class _PhonePrivilegedPageState extends ConsumerState<PhonePrivilegedPage> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
             // Three equal steps, equal width; the one filled button on the
-            // page stays 「启用不打扰模式」 below.
+            // page stays 「启用虚拟屏」 below.
             child: Row(
               spacing: 8,
               children: [
