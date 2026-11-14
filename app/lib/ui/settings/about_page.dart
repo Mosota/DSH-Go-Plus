@@ -48,8 +48,6 @@ class AboutPage extends ConsumerWidget {
               spot: Spots.version,
               value: Text(version, style: AppType.tabular(theme.textTheme.bodyMedium!)),
             ),
-            // 检查上游更新(原来挂在「原作者」区里,折叠后会一起藏起来)。
-            const AppUpdateTiles(),
             _authorLink(
               context,
               ref,
@@ -74,14 +72,19 @@ class AboutPage extends ConsumerWidget {
         // 作者名、B站、X 已按要求删掉,只留 GitHub。
         _AuthorFold(
           title: l10n.hubAboutAuthor,
-          child: _authorLink(
-            context,
-            ref,
-            'about-author-github',
-            l10n.hubAboutGithub,
-            '@${AppInfo.author}',
-            AppInfo.authorGithubUrl,
-          ),
+          // 检查上游更新 / 自动检查上游更新 are part of the author's block: they talk to the
+          // upstream release feed, so they belong with it rather than with this version.
+          children: [
+            const AppUpdateTiles(),
+            _authorLink(
+              context,
+              ref,
+              'about-author-github',
+              l10n.hubAboutGithub,
+              '@${AppInfo.author}',
+              AppInfo.authorGithubUrl,
+            ),
+          ],
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
@@ -147,10 +150,10 @@ class AboutPage extends ConsumerWidget {
 /// 和设置里其他卡同一套外壳([SettingsSection] + [SettingsTile]),展开/
 /// 收起用 [ExpandReveal],箭头用 [RowExpandArrow],视觉和别处一致。
 class _AuthorFold extends StatefulWidget {
-  const _AuthorFold({required this.title, required this.child});
+  const _AuthorFold({required this.title, required this.children});
 
   final String title;
-  final Widget child;
+  final List<Widget> children;
 
   @override
   State<_AuthorFold> createState() => _AuthorFoldState();
@@ -170,7 +173,7 @@ class _AuthorFoldState extends State<_AuthorFold> {
           onTap: () => setState(() => _open = !_open),
         ),
       ),
-      ExpandReveal(open: _open, child: widget.child),
+      ExpandReveal(open: _open, child: Column(children: widget.children)),
     ],
   );
 }
