@@ -844,13 +844,7 @@ abstract final class Spots {
     title: (l) => l.hubInterfaceOpenWeb,
     keywords: (l) => l.searchKwOpenWeb,
   );
-  static final webPhoneLayout = SettingSpot(
-    'web-phone-layout',
-    page: SettingsPageId.interface,
-    title: (l) => l.hubInterfacePhoneLayout,
-    keywords: (l) => l.searchKwWebPhoneLayout,
-  );
-  static final webCodingView = SettingSpot(
+    static final webCodingView = SettingSpot(
     'web-coding-view',
     page: SettingsPageId.interface,
     title: (l) => l.engineGeneralShowCodingView,
@@ -1128,7 +1122,6 @@ final _rows = <SettingSpot>[
   Spots.tableTint,
   Spots.webApp,
   Spots.openWeb,
-  Spots.webPhoneLayout,
   Spots.webCodingView,
   Spots.webCollapse,
   Spots.webBusySend,
