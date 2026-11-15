@@ -110,12 +110,8 @@ class InterfacePage extends ConsumerWidget {
                   ? Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst)
                   : Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LocalWebScreen())),
             ),
-            SettingsSwitchTile(
-              spot: Spots.webPhoneLayout,
-              subtitle: l10n.hubSettingsWebPhoneLayoutHint,
-              value: settings.webPhoneLayout,
-              onChanged: (v) => unawaited(ref.read(settingsProvider.notifier).setWebPhoneLayout(v)),
-            ),
+            // 「手机布局」已移除：它靠改写网页端 CSS 实现，前端类名一变就只剩
+            // 副作用（原生按钮压住网页标题）。网页版本身已按手机宽度自适应。
           ],
         ),
         SettingsSection(
