@@ -441,7 +441,6 @@ class PhoneControl private constructor(private val app: Context) : PhoneEnv, Con
         return true
     }
 
-    /** Off closes the bridge and stops the task after any in-flight keeper settings write.
     /** Off stops control tasks after any in-flight keeper settings write; diagnostics keeps its transport.
      * On needs an engine restart (the UI does it); the rebind gap never holds this switch.
      */
