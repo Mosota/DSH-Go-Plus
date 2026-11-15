@@ -701,10 +701,9 @@ class _WebViewPageState extends State<WebViewPage> {
               _set(() => _loading = false);
               _appliedInsets = null;
               _applyInsets();
-              // 网页端样式：注入 180 那版的最小安全 CSS + 浮层顶部安全区。
-              // 原生按钮不画（_adapt 恒 false），所以不会压住网页标题。
+              // 只注入 180 那版的最小安全 CSS；浮层位置交给前端自己（加内边距
+              // 会把整块内容推太低，反而不像宿主 App 的样子）。
               unawaited(_injectPhoneLayout());
-              unawaited(_injectSafeArea());
               if (widget.dshWeb) unawaited(_injectBackBridge());
               if (widget.dshWeb) unawaited(_injectOpenBridge());
               if (widget.dshWeb) unawaited(_injectSidebarBridge());
@@ -975,48 +974,6 @@ class _WebViewPageState extends State<WebViewPage> {
   });
 
   /// 浮层（设置页、弹窗、抽屉）顶部补齐状态栏高度。只动这几类节点。
-  /// 让网页里的"浮层"避开状态栏。
-  ///
-  /// 不用类名匹配（这套前端的类名是哈希，换版本就失效）：直接在 DOM 里找满足
-  /// "position:fixed 且贴住页面顶部、且高度接近整屏"的元素，把它们往下推。
-  /// 判断依据是几何位置，不依赖任何类名。
-  Future<void> _injectSafeArea() async {
-    const js = r"""
-;(function(){
-  var css = getComputedStyle(document.documentElement);
-  var v = parseFloat(css.getPropertyValue('--dsh-app-inset-top')) || 0;
-  var pad = Math.max(28, v) + 32;   // 用户要求：明显离状态栏远一点
-  function fix(){
-    var vh = window.innerHeight;
-    var nodes = document.querySelectorAll('body *');
-    for (var i = 0; i < nodes.length; i++) {
-      var el = nodes[i];
-      if (el.dataset.dshSafe === '1') continue;
-      var st = getComputedStyle(el);
-      if (st.position !== 'fixed' && st.position !== 'absolute') continue;
-      var r = el.getBoundingClientRect();
-      if (r.height < vh * 0.5) continue;        // 只处理接近整屏的浮层
-      if (r.top > 48) continue;                 // 只处理贴着顶部的
-      el.style.setProperty('padding-top', pad + 'px', 'important');
-      el.style.setProperty('box-sizing', 'border-box', 'important');
-      el.dataset.dshSafe = '1';
-    }
-  }
-  fix();
-  if (!window.__dshSafeObs) {
-    window.__dshSafeObs = new MutationObserver(function(){ clearTimeout(window.__dshSafeT);
-      window.__dshSafeT = setTimeout(fix, 120); });
-    window.__dshSafeObs.observe(document.body, {childList: true, subtree: true});
-  }
-})();
-""";
-    try {
-      await _controller.runJavaScript(js);
-    } catch (_) {
-      // 页面还没有 DOM：下次加载再试。
-    }
-  }
-
   Future<void> _injectPhoneLayout() async {
     try {
       await _controller.runJavaScript(await _phoneLayout());
