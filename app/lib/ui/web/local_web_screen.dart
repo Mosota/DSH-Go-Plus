@@ -43,7 +43,7 @@ class LocalWebScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final status = ref.watch(localRuntimeProvider.select((s) => s.status));
-    final phoneLayout = ref.watch(settingsProvider.select((s) => s.webPhoneLayout));
+    const phoneLayout = true;
     if (status.isRunning) {
       return WebViewPage(
         // A restart issues a new token, and the layout switch applies on
