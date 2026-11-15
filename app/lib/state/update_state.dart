@@ -560,7 +560,11 @@ class AppUpdateController extends Notifier<AppUpdateState> {
     final prefs = _prefs;
     final now = _now();
     final checker = UpdateChecker(http: _http, sources: ref.read(updateSourcesProvider), userAgent: _userAgent);
-    final result = await checker.check(preferred: prefs?.getString(_endpointKey), installed: state.current);
+    // 无超时的检查在弱网/GitHub 被墙时会一直转圈；25 秒后按失败处理，
+    // 让界面能给出"检查失败"而不是永远停在 checking。
+    final result = await checker
+        .check(preferred: prefs?.getString(_endpointKey), installed: state.current)
+        .timeout(const Duration(seconds: 25), onTimeout: () => const CheckFailed(CheckFailure.network));
     if (!ref.mounted) return UpdateCheckPhase.idle;
     unawaited(prefs?.setInt(_attemptKey, now.millisecondsSinceEpoch));
     switch (result) {

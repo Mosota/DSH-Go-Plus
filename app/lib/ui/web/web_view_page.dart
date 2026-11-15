@@ -263,11 +263,14 @@ class WebPageInsets {
         const top = WebChromeMetrics.seatTop;
         return WebPageInsets(
           chrome: WebChrome.seat,
-          rootTop: padding.top,
+          // The viewport itself starts below the status bar now (see build()),
+          // so the page needs no extra top offset and the app's controls sit
+          // the same distance under it as before.
+          rootTop: 0,
           rootBottom: gesture,
-          left: padding.left,
-          right: padding.right,
-          layerTop: padding.top + top + b + 6,
+          left: 0,
+          right: 0,
+          layerTop: top + b + 6,
           bottom: gesture,
           leadHeight: top + b,
           keyboard: keyboard,
@@ -277,11 +280,11 @@ class WebPageInsets {
       // no feather over it.
       return WebPageInsets(
         chrome: WebChrome.bar,
-        rootTop: topChrome,
+        rootTop: 0,
         rootBottom: gesture,
-        left: padding.left,
-        right: padding.right,
-        layerTop: topChrome,
+        left: 0,
+        right: 0,
+        layerTop: WebChromeMetrics.barHeight,
         bottom: gesture,
         keyboard: keyboard,
       );
@@ -1100,8 +1103,11 @@ class _WebViewPageState extends State<WebViewPage> {
                 // DSH Web pads its own root (its backgrounds run under a
                 // cutout); other sites stay out of the cutout and the side
                 // navigation bar, fixed headers and footers included.
+                // DSH Web: the whole viewport starts below the status bar, so the
+                // page's own full-screen layers (设置/弹窗) clear it too. The page
+                // root then needs no offset of its own ([WebPageInsets.rootTop]).
                 padding: widget.dshWeb
-                    ? EdgeInsets.zero
+                    ? EdgeInsets.only(top: padding.top, left: padding.left, right: padding.right)
                     : EdgeInsets.only(left: padding.left, right: padding.right, bottom: shrink),
                 // A dead WebView leaves the tree; a reopen is a new one.
                 child: _gone
