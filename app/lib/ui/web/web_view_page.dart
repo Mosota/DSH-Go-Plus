@@ -263,14 +263,14 @@ class WebPageInsets {
         const top = WebChromeMetrics.seatTop;
         return WebPageInsets(
           chrome: WebChrome.seat,
-          // The viewport itself starts below the status bar now (see build()),
-          // so the page needs no extra top offset and the app's controls sit
-          // the same distance under it as before.
+          // The viewport itself starts below the status bar now (see build()):
+          // the page needs no root offset and the frontend must not add one of
+          // its own to full-screen layers either, or 设置 gets pushed twice.
           rootTop: 0,
           rootBottom: gesture,
           left: 0,
           right: 0,
-          layerTop: top + b + 6,
+          layerTop: 0,
           bottom: gesture,
           leadHeight: top + b,
           keyboard: keyboard,
@@ -284,7 +284,7 @@ class WebPageInsets {
         rootBottom: gesture,
         left: 0,
         right: 0,
-        layerTop: WebChromeMetrics.barHeight,
+        layerTop: 0,
         bottom: gesture,
         keyboard: keyboard,
       );
