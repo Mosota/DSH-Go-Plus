@@ -701,9 +701,7 @@ class _WebViewPageState extends State<WebViewPage> {
               _set(() => _loading = false);
               _appliedInsets = null;
               _applyInsets();
-              // 不注入自定义 CSS：它在深色模式下会吃掉右上角的图标，类和这边的
-              // 前端也对不上。只保留浮层顶部安全区这一条无害修正。
-              unawaited(_injectSafeArea());
+              // 不注入任何自定义 CSS：之前两版都在深色模式或顶栏上出问题。
               if (widget.dshWeb) unawaited(_injectBackBridge());
               if (widget.dshWeb) unawaited(_injectOpenBridge());
               if (widget.dshWeb) unawaited(_injectSidebarBridge());
@@ -972,19 +970,6 @@ class _WebViewPageState extends State<WebViewPage> {
       js,
     ].join('\n');
   });
-
-  /// 浮层（设置页、弹窗、抽屉）顶部补齐状态栏高度。只动这几类节点。
-  Future<void> _injectSafeArea() async {
-    try {
-      final css = await rootBundle.loadString('assets/web/dsh_web_safe.css');
-      final js = ";(function(){var s=document.getElementById('dsh-app-safe');"
-          "if(!s){s=document.createElement('style');s.id='dsh-app-safe';document.head.appendChild(s);}"
-          "s.textContent=${jsonEncode(css)};})();";
-      await _controller.runJavaScript(js);
-    } catch (_) {
-      // 页面还没有 DOM：下次加载再来一次。
-    }
-  }
 
   Future<void> _injectPhoneLayout() async {
     try {
