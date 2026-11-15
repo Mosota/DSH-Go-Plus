@@ -701,8 +701,8 @@ class _WebViewPageState extends State<WebViewPage> {
               _set(() => _loading = false);
               _appliedInsets = null;
               _applyInsets();
-              // 网页端重排：只注入 CSS，不再由 App 在顶栏画按钮（那会压住标题）。
-              unawaited(_injectPhoneLayout());
+              // 不注入自定义 CSS：它在深色模式下会吃掉右上角的图标，类和这边的
+              // 前端也对不上。只保留浮层顶部安全区这一条无害修正。
               unawaited(_injectSafeArea());
               if (widget.dshWeb) unawaited(_injectBackBridge());
               if (widget.dshWeb) unawaited(_injectOpenBridge());
