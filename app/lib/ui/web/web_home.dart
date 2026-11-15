@@ -152,7 +152,7 @@ class _WebHomeState extends ConsumerState<WebHome> {
   @override
   Widget build(BuildContext context) {
     final access = ref.watch(dshWebAccessProvider);
-    final phoneLayout = ref.watch(settingsProvider.select((s) => s.webPhoneLayout));
+    const phoneLayout = true;
     final Widget page = switch (access) {
       LocalDshWeb() => LocalWebScreen(handle: _handle, link: _link, onSession: _onSession),
       SshDshWeb(:final url, :final hostName) => WebViewPage(
