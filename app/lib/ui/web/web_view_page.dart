@@ -101,7 +101,10 @@ class WebViewPage extends StatefulWidget {
   /// the client's stored selection; null for none).
   final ValueChanged<String?>? onSession;
 
-  bool get _adapt => dshWeb && phoneLayout;
+  /// 手机布局不再启用：那套适配依赖前端类名，类名对不上时只会把网页顶栏挤坏
+  /// （App 在顶栏画的两个按钮会和网页自己的标题重叠）。需要真正重排时，先拿到
+  /// Plus 那套前端的真实类名，再打开这条路径。
+  bool get _adapt => false;
 
   @override
   State<WebViewPage> createState() => _WebViewPageState();
