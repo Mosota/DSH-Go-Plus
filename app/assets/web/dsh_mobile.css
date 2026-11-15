@@ -1,45 +1,38 @@
 /* ============================================================
-   deepdive 手机版 UI 优化 v0.4
+   deepdive 手机版 UI 优化 v0.3（对应 APK v1.3.1）
    ------------------------------------------------------------
-   对照构建：@deepseek-ai/dsh-web-frontend 0.2.1-rc.2（dist/index.html、
-   dist/assets/index-BxpfOGf3.css）以及它所加载的
-   @deepseek-ai/dsh-client-ui-* 各包的 client.js。
-
-   ⚠️ 重要：聊天 UI 的类名不在 index-*.css 里。
-   index-*.css 只有启动/错误页（_boot_/_card_）。真正的聊天布局是
-   dsh-client-ui-conversation / -chat / -layout / -settings-general /
-   -tool / -jobs 在运行时注入的 CSS module，类名格式是
-   **`<hash>_<name>`**（例：`wSkVaW_header`、`uV2eYG_row`、
-   `VOzbGW_panel`），不是 `._name_hash_1`。所以：
-   - 名字唯一的组件用 `[class*="_name"]`（hash 变了仍命中）；
-   - 容易撞名（header/panel/content/frame）的布局用当前精确类名，
-     下次前端升级后按本文件开头的「类名清单」重新抓一遍。
-
-   本次核对到的真实类名（在对应包 client.js 中的出现次数）：
-     布局     pI_x6G_frame 17 / pI_x6G_sidebarCol 7 / pI_x6G_centerCol 5
-     会话     wSkVaW_body 2, wSkVaW_header 26, wSkVaW_scrollBody 8,
-              wSkVaW_composerSeat 8, wSkVaW_composerHero 2,
-              wSkVaW_tabs 3, wSkVaW_headerUtilities 4
-     输入栏   uV2eYG_root 2, uV2eYG_card 7, uV2eYG_input 14,
-              uV2eYG_row 3, uV2eYG_trailing 6, uV2eYG_modes 4,
-              uV2eYG_standardControls 3, uV2eYG_select 4,
-              uV2eYG_dock 3, uV2eYG_accessory 2
-     消息区   EvIC1a_scroll 4, EvIC1a_column 13, EvIC1a_toBottomSlot 3
-     消息操作 xzv4MW_actions 9, xzv4MW_timeStart 2, xzv4MW_timeEnd 2
-     设置     VOzbGW_panel 3, VOzbGW_nav 14, VOzbGW_navList 2,
-              VOzbGW_navTitle 2, VOzbGW_navCell 4, VOzbGW_content 2,
-              VOzbGW_header 2, VOzbGW_actions 2
-     工具卡   CY-8Ka_terminal 2, CY-8Ka_ioSection 4, CY-8Ka_ioText 3,
-              CY-8Ka_commandInput 2
-     后台任务 QsffPG_menu 4, QsffPG_trigger 9
-
-   历史教训（保留）：0.1.7 升级后旧版用 `._name_hash_1` 的 20 个选择器
-   全部 0 命中，整套适配静默失效；不要再写 Vite 哈希类名，
-   也不要用 `[class*="_name_"]`（本构建的 name 后面没有下划线）。
+   ⚠️ 0.1.7 内核升级（APK v1.15.0）后的重大变更：选择器改为【属性选择器】。
+   - 原来写的是 Vite 哈希类名（._wrap_1ao1y_1 = _名字_hash_行号）。
+     前端每次重新构建，hash 必然变 → 0.1.7 升级后实测 **20 个选择器全部失效（0 命中）**，
+     整套移动端适配静默失效。
+   - 现统一改为 [class*="_名字_"]：只要前端还叫这个名字（hash/行号变了也无所谓）就继续生效。
+     属性选择器特异性与类选择器相同（0,1,0），不会改变原有优先级。
+   - 已核对 0.1.7 前端：15 个名字仍存在（answer/block/button/card/command/content/
+     input/item/itemLabel/label/line/markdown/output/separator/wrap）。
+   - ⚠️ 4 个名字在新前端已不存在（gallery / illustration / rail / thumbnail，
+     对应附件缩略图栏与图片画廊，这两个组件在 0.1.7 被重构）→ 已删除。
+   - ⚠️ **但「名字存在」≠「可以随便改」**：`_item_` / `_label_` / `_separator_` /
+     `_itemLabel_` 这四个名字在 0.1.7 命中的是【菜单/下拉菜单】组件，
+     不是当年那个侧栏图标行 → 详见下方「v1.15.1 修正」。
+   ------------------------------------------------------------
+   v0.2 重写说明（历史）：
+   - 旧版 mobile.css 使用的类名（gdEzaW_/hHd-Xa_/pbvGtq_/qSYn7G_ 等）
+     在真实前端构建中不存在，属"死代码"；当时改为 0.1.0-rc.6 的真实哈希类名（已废弃）。
+   - 新增：竖屏适配（原 APK 锁横屏）、鲸鱼蓝皮肤、触摸优化。
+   v0.3 新增（v1.3.1，全部为布局/溢出修复，不删功能）：
+   - 消息操作条多行换行（.p-xYUq_actions flex-wrap）
+   - 标题栏让位三条杠（.wSkVaW_header padding-left:52px）
+   - 正文/输入框扩宽（消息区 padding 32→8px、composer 边距 16/8→4px）
+   - 滚动条不占位（scrollbar-gutter:auto）→ 修输入栏按钮重叠
+   - Bash 工具卡片防横向溢出（pre-wrap + word-break）
+   - 后台任务菜单右对齐（.QsffPG_menu right:0）
+   - 设置页单栏（.VOzbGW_panel 上下排列 + 内容可滚动）
+   - 插件按钮定位到三条杠下方（[data-cordis-badge] fixed 52/8，不动 DOM）
+   注意：类名是运行时插件动态注入的 CSS module 类名，改前先确认真实类名。
    ============================================================ */
 
 :root {
-  /* 触摸友好：主要可点目标的最小高度 */
+  /* 触摸友好：点击目标最小 44px */
   --ds-mobile-tap: 44px;
   /* 鲸鱼蓝皮肤（与桌面版 deepdive 一致） */
   --dsw-alias-brand-primary: #4D6BFE !important;
@@ -55,7 +48,7 @@
 /* ---------- 基础触摸优化 ---------- */
 button,
 [role="button"],
-summary,
+.icon-btn,
 input,
 select,
 textarea {
@@ -70,7 +63,7 @@ input[type="search"] {
   font-size: 16px !important;
 }
 
-/* 触屏滚动条更细，且不占布局宽度（输入栏按钮重叠的根因之一） */
+/* 触屏滚动条更细 */
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -78,182 +71,48 @@ input[type="search"] {
 ::-webkit-scrollbar-thumb {
   border-radius: 4px;
 }
-.wSkVaW_scrollBody,
-.EvIC1a_scroll {
-  scrollbar-gutter: auto !important;
+
+/* ---------- 真实类名适配 ---------- */
+
+/* 输入框/搜索框：加大点击与输入区 */
+[class*="_wrap_"] {
+  height: 44px;
+  min-height: 44px;
+  border-radius: 12px;
+  padding: 0 12px;
+}
+[class*="_input_"] {
+  font-size: 16px !important;
+  line-height: 28px;
 }
 
-/* ---------- 聊天区：正文扩宽、左右留白收紧 ---------- */
-@media (max-width: 760px) {
-  /* 侧栏在手机上由布局自己收成 rail；去掉桌面分栏的右边框，正文列不再被压 */
-  [class*="_sidebarCol"] {
-    border-right: 0 !important;
-  }
-  [class*="_centerCol"] {
-    min-width: 0 !important;
-  }
-  /* 输入栏两侧 clearance 默认 16 + 消息区再 +16 = 32，手机上白白吃掉宽度 */
-  .wSkVaW_body {
-    --dsh-composer-side-clearance: 4px;
-    --dsh-composer-dock-inset: 4px;
-  }
-  .EvIC1a_scroll {
-    padding: 12px 8px !important;
-  }
-  .EvIC1a_column {
-    max-width: 100% !important;
-  }
-  .EvIC1a_toBottomSlot {
-    padding-bottom: 8px;
-  }
-  /* 标题栏给左上角的三条杠/返回键让位 */
-  .wSkVaW_header {
-    min-height: 64px;
-    padding: 10px 12px 0 52px !important;
-  }
-  .wSkVaW_tabs {
-    gap: 20px;
-    margin-top: 6px;
-    padding-left: 0 !important;
-  }
+/* ⚠ v1.15.1 已删除（原「侧栏图标行」与「菜单项」）：
+   [class*="_rail_"] { gap: 12px }
+   [class*="_item_"] { flex: 0 0 48px; width: 48px; height: 48px }
+   [class*="_item_"] { min-height: 40px }
+   [class*="_thumbnail_"] { width/height: 48px; border-radius: 14px }
+   [class*="_label_"] { padding: 6px 4px }
+   删除原因见本文件头部「v1.15.1 修正」。 */
+
+/* 消息/回答内容：移动端全宽阅读，不挤压 */
+[class*="_answer_"],
+[class*="_markdown_"],
+[class*="_content_"] {
+  max-width: 100% !important;
 }
 
-/* ---------- 输入栏：不换行、按钮不压住输入框 ---------- */
-@media (max-width: 760px) {
-  .uV2eYG_root {
-    padding: 0 4px 4px !important;
-  }
-  .uV2eYG_card {
-    max-width: 100% !important;
-    border-radius: 18px !important;
-  }
-  .uV2eYG_input {
-    min-height: var(--ds-mobile-tap);
-    font-size: 16px !important;
-    line-height: 24px !important;
-    padding-left: 12px !important;
-  }
-  .uV2eYG_row {
-    flex-wrap: nowrap !important;
-    gap: 6px !important;
-    padding: 2px 6px 6px !important;
-  }
-  .uV2eYG_trailing,
-  .uV2eYG_modes,
-  .uV2eYG_standardControls {
-    flex-wrap: nowrap !important;
-    gap: 6px !important;
-    min-width: 0;
-  }
-  .uV2eYG_select {
-    max-width: 30vw !important;
-    font-size: 12px !important;
-  }
-  .uV2eYG_dock {
-    gap: 8px !important;
-  }
-  .uV2eYG_accessory {
-    padding: 8px 8px 0 !important;
-  }
+/* 工具调用卡片：全宽 + 可读性 */
+[class*="_block_"],
+[class*="_output_"],
+[class*="_command_"] {
+  max-width: 100% !important;
 }
 
-/* ---------- 消息操作条：窄屏换行，时间不撑破 ---------- */
-@media (max-width: 640px) {
-  [class*="_timeStart"],
-  [class*="_timeEnd"] {
-    white-space: normal !important;
-  }
-  .xzv4MW_actions {
-    flex-wrap: wrap !important;
-    height: auto !important;
-    min-height: 28px;
-    row-gap: 2px;
-  }
-  .xzv4MW_timeStart,
-  .xzv4MW_timeEnd {
-    padding-right: 0 !important;
-  }
-}
-
-/* ---------- 设置：单栏（导航横排 + 内容全宽） ---------- */
-@media (max-width: 760px) {
-  .VOzbGW_panel {
-    flex-direction: column !important;
-    width: 100% !important;
-    max-width: calc(100vw - 16px) !important;
-    height: min(860px, calc(100vh - 24px)) !important;
-    border-radius: 16px !important;
-  }
-  .VOzbGW_nav {
-    width: auto !important;
-    flex: none !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 8px !important;
-    padding: 10px 8px 0 !important;
-    border-right: 0 !important;
-    overflow-x: auto !important;
-    scrollbar-width: none;
-  }
-  .VOzbGW_nav::-webkit-scrollbar,
-  .VOzbGW_navList::-webkit-scrollbar {
-    display: none;
-  }
-  .VOzbGW_navTitle {
-    display: none !important;
-  }
-  .VOzbGW_navList {
-    flex-direction: row !important;
-    gap: 4px !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-  }
-  .VOzbGW_navCell {
-    flex: none !important;
-    width: auto !important;
-    white-space: nowrap;
-    height: var(--ds-mobile-tap) !important;
-    padding: 10px 12px !important;
-  }
-  .VOzbGW_content {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
-    overflow-y: auto !important;
-  }
-  .VOzbGW_header {
-    height: auto !important;
-    padding: 12px 12px 8px 10px !important;
-  }
-  .VOzbGW_content p,
-  .VOzbGW_content li,
-  .VOzbGW_content dd,
-  .VOzbGW_content dt {
-    line-height: 1.7;
-  }
-}
-
-/* ---------- 工具卡 / 终端：长命令和输出不横向撑破 ---------- */
-@media (max-width: 760px) {
-  .CY-8Ka_terminal,
-  .CY-8Ka_ioSection,
-  .CY-8Ka_ioText,
-  .CY-8Ka_commandInput,
-  [class*="_terminalBody"],
-  [class*="_codeBody"] {
-    max-width: 100% !important;
-    overflow-x: auto !important;
-    white-space: pre-wrap !important;
-    word-break: break-word !important;
-    overflow-wrap: anywhere;
-  }
-  .CY-8Ka_ioSection {
-    column-gap: 8px !important;
-    padding: 10px 12px !important;
-    box-sizing: border-box !important;
-  }
-}
-
-/* ---------- 表格：窄屏可横向滚动 ---------- */
+/* 表格：窄屏可横向滚动
+   注：类名哈希随前端构建变化（_tableScroll_1nba0 → _tableScroll_1r4m5），
+   改用属性选择器匹配，避免前端更新后失效；同时覆盖前端 md-table-wide
+   的「hover 才显示滚动条」设计——触屏设备没有 hover，滚动条永远隐藏
+   导致宽表格无法横向滑动。移动端始终允许横向滚动。 */
 [class*="tableScroll"],
 .md-table-wide {
   max-width: 100% !important;
@@ -263,54 +122,178 @@ input[type="search"] {
   padding-bottom: 0 !important;
 }
 
-/* ---------- 后台任务菜单：不超出屏幕 ---------- */
-@media (max-width: 640px) {
-  .QsffPG_menu {
-    left: auto !important;
-    right: 8px !important;
-    max-width: calc(100vw - 16px) !important;
+/* 空状态 / 引导卡：宽度自适应
+   （原 [class*="_gallery_"] / [class*="_illustration_"] 在 0.1.7 已无同名组件，已删） */
+[class*="_card_"] {
+  max-width: 100% !important;
+}
+
+/* ============ 竖屏专项适配 ============ */
+@media (orientation: portrait) {
+  html,
+  body {
+    font-size: 15.5px;
   }
-  .QsffPG_trigger {
-    min-height: var(--ds-mobile-tap) !important;
+
+  /* 会话/回答内容宽度：竖屏给足空间 */
+  [class*="_answer_"],
+  [class*="_markdown_"] {
+    width: 100%;
+    max-width: 100% !important;
+  }
+
+  /* 工具卡片、代码块：竖屏不横向溢出 */
+  [class*="_block_"],
+  [class*="_output_"],
+  [class*="_content_"] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* 底部输入区：触摸目标更大、更易点击 */
+  [class*="_wrap_"] {
+    height: 48px;
+    border-radius: 14px;
+  }
+  [class*="_input_"] {
+    font-size: 16px !important;
+  }
+
+  /* 侧栏图标（_rail_/_item_/_thumbnail_）规则已按头部「v1.15.1 修正」删除：
+     0.1.7 的 _item_ 是菜单项组件，强制 44×44 会把菜单文字裁掉。 */
+}
+
+/* ============ 设置页移动端优化（基于真机截图） ============ */
+@media (max-width: 1100px) {
+  /* 设置菜单项尺寸（_item_/_itemLabel_/_label_/_separator_）规则已按头部「v1.15.1 修正」删除：
+     这四个名字在 0.1.7 都命中菜单/下拉菜单组件，会改坏菜单宽度与标签内边距。 */
+
+  /* 设置说明文字：行距舒展，不再挤成竖排 */
+  p,
+  li,
+  dd,
+  dt {
+    line-height: 1.75;
+  }
+
+  /* 顶部操作按钮（如"打开配置文件"）更大更好点 */
+  [class*="_button_"] {
+    min-height: 40px;
+    padding: 8px 14px;
   }
 }
 
-/* ---------- 触摸目标 ≥44px（只动主要控件，避免把密集图标撑变形） ---------- */
-@media (pointer: coarse) {
-  .VOzbGW_navCell,
-  .VOzbGW_actions button,
-  .uV2eYG_select,
-  .QsffPG_trigger,
-  .xzv4MW_actions button,
-  .uV2eYG_row button,
-  .uV2eYG_row [role="button"] {
-    min-height: var(--ds-mobile-tap) !important;
-  }
-  .uV2eYG_row button,
-  .uV2eYG_row [role="button"] {
-    min-width: 40px;
-  }
-}
-
-/* ---------- 横屏矮屏：字号收一档 ---------- */
+/* ============ 横屏矮屏（窄高度）优化 ============ */
 @media (max-height: 520px) and (orientation: landscape) {
   html,
   body {
     font-size: 14.5px;
   }
-  .wSkVaW_header {
-    min-height: 52px;
-    padding-top: 6px !important;
+  /* _rail_/_item_/_thumbnail_ 规则已按头部「v1.15.1 修正」删除 */
+}
+
+/* ============ 窄屏：AI 消息操作条分多行 ============
+   MessageIconActions（复制/赞踩/分支/时间/耗时/token）原为一行
+   flex（height:28px、文字 nowrap），窄屏下会伸出屏幕；
+   改为允许换行：时间/耗时为整体单元，放不下就折到下一行。
+   !important 是为了压过插件运行时注入的同名规则（注入顺序在后）。 */
+@media (max-width: 640px) {
+  .p-xYUq_actions {
+    flex-wrap: wrap !important;
+    height: auto !important;
+    min-height: 28px;
+    row-gap: 2px;
+  }
+  .p-xYUq_timeStart,
+  .p-xYUq_timeEnd {
+    white-space: normal !important;
   }
 }
 
-/* ---------- 插件按钮（mobile.js 注入，三条杠下方） ---------- */
+/* ============ 窄屏：会话标题栏给左上角三条杠让位 ============
+   聊天区顶部 header（会话标题/面包屑）默认左 padding 20px，
+   会被 fixed 在左上角（8px 起、宽 36px）的三条杠按钮盖住；
+   窄屏下把标题栏左内边距加大，让标题从三条杠右侧开始。 */
+@media (max-width: 640px) {
+  .wSkVaW_header {
+    padding-left: 52px !important;
+  }
+}
+
+/* ============ 窄屏：正文与输入框扩宽 ============
+   桌面端为三列布局预留了大量左右内缩（消息区 padding 32px、
+   输入框 clearance 16+inset 8 = 24px），窄屏（竖屏/手机横屏）下
+   白白浪费宽度。这里把内缩收小，让正文与输入栏更宽；
+   同时滚动条不预留占位（避免输入栏被压窄导致按钮重叠）。 */
+@media (max-width: 640px) {
+  /* 正文消息区：左右内缩 32px → 8px */
+  .Md3f7G_scroll {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+  /* 输入框 dock 更宽：clearance/inset 收小 */
+  .wSkVaW_root {
+    --dsh-composer-side-clearance: 4px !important;
+    --dsh-composer-dock-inset: 4px !important;
+  }
+  /* 滚动条不占宽度，避免压缩输入栏（有会话时按钮重叠的根因） */
+  .wSkVaW_scrollBody,
+  .Md3f7G_scroll {
+    scrollbar-gutter: auto !important;
+  }
+  /* 工具调用卡片：不贴屏幕左右边缘 */
+  [class*="_block_"],
+  [class*="_output_"],
+  [class*="_content_"] {
+    margin-left: 2px !important;
+    margin-right: 2px !important;
+  }
+}
+
+/* ============ 窄屏：输入栏右侧按钮保持一行且不重叠 ============
+   InputBar 的 trailing 一行排开（审核模式按钮 + 模型名 + token 计量），
+   窄屏下直接换行会让审核按钮掉到下一行、输入框变高；
+   这里保持一行（nowrap），通过压缩模型名宽度与按钮间距避免重叠。 */
+@media (max-width: 640px) {
+  .uV2eYG_trailing,
+  .uV2eYG_modes,
+  .uV2eYG_tools {
+    flex-wrap: nowrap !important;
+  }
+  .uV2eYG_trailing,
+  .uV2eYG_modes {
+    gap: 6px !important;
+  }
+  .uV2eYG_select {
+    max-width: 26vw !important;
+    font-size: 12px !important;
+  }
+}
+
+/* ============ 窄屏：Bash 工具卡片防横向溢出 ============
+   终端卡片里的命令文本/输出行 white-space:pre 不换行，
+   窄屏下会把卡片撑出屏幕；改为可换行（pre-wrap）。 */
+@media (max-width: 640px) {
+  [class*="_command_"],
+  [class*="_line_"] {
+    white-space: pre-wrap !important;
+    word-break: break-all;
+  }
+  [class*="_block_"] {
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+}
+
+/* ============ 插件按钮（mobile.js 注入，三条杠下方） ============
+   窄屏下侧边栏里的插件入口不易触达，改为左上角三条杠下方的
+   图标按钮（fixed 定位由 JS 设置）；点击打开插件管理面板。 */
 .dsh-mobile-plugin-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: none;
   border-radius: 8px;
@@ -330,6 +313,11 @@ input[type="search"] {
   height: 16px;
 }
 
+/* ============ 窄屏：插件按钮定位到三条杠下方 ============
+   核心渲染的插件按钮（header.utilities 里的 [data-cordis-badge]，
+   单一实例）默认在右上角；CSS position:fixed 挪到左上角三条杠
+   正下方。不动 DOM（按钮留在 #root 内，React 事件委托才有效），
+   只改样式；隐藏宽版按钮文字，只留图标。 */
 @media (max-width: 1024px) {
   .wSkVaW_headerUtilities [data-cordis-badge] {
     position: fixed !important;
@@ -347,5 +335,57 @@ input[type="search"] {
   }
   .wSkVaW_headerUtilities [data-cordis-badge] > span {
     display: none !important;
+  }
+}
+
+/* ============ 窄屏：后台任务菜单不超出屏幕 ============
+   后台任务下拉（.QsffPG_menu）定位 left:0，按钮在右侧时面板
+   向右延伸超出屏幕（任务名被推到屏外）；改为右对齐向左展开。 */
+@media (max-width: 640px) {
+  .QsffPG_menu {
+    left: auto !important;
+    right: 0 !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+}
+
+/* ============ 窄屏：设置页单栏适配 ============
+   设置页（.VOzbGW_panel）默认 800px 左右两栏（nav 188px + 内容），
+   竖屏下内容列被挤到一百多像素、几乎不可用；
+   改为上下排列：导航横排（可横向滚动）在顶部，内容区全宽在下。 */
+@media (max-width: 640px) {
+  .VOzbGW_panel {
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: calc(100vw - 16px) !important;
+    height: min(800px, calc(100vh - 32px)) !important;
+    border-radius: 16px !important;
+  }
+  .VOzbGW_nav {
+    width: 100% !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 10px 8px 0 !important;
+    overflow-x: auto !important;
+  }
+  .VOzbGW_navTitle {
+    flex: none !important;
+    white-space: nowrap !important;
+  }
+  .VOzbGW_navList {
+    flex-direction: row !important;
+    gap: 4px !important;
+  }
+  .VOzbGW_navCell {
+    flex: none !important;
+    white-space: nowrap !important;
+    height: 36px !important;
+    padding: 6px 12px !important;
+  }
+  .VOzbGW_content {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    min-height: 0 !important;
   }
 }
