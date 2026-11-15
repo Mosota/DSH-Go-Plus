@@ -701,8 +701,8 @@ class _WebViewPageState extends State<WebViewPage> {
               _set(() => _loading = false);
               _appliedInsets = null;
               _applyInsets();
-              // 手机布局的 CSS 会打乱网页端顶栏（按钮重叠、图标不可见），在弄清它的
-              // 类名之前不再注入；只保留下面这段只影响浮层的安全区修正。
+              // 网页端重排：只注入 CSS，不再由 App 在顶栏画按钮（那会压住标题）。
+              unawaited(_injectPhoneLayout());
               unawaited(_injectSafeArea());
               if (widget.dshWeb) unawaited(_injectBackBridge());
               if (widget.dshWeb) unawaited(_injectOpenBridge());
