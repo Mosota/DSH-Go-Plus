@@ -9331,7 +9331,7 @@ class L10nZh extends L10n {
 
   @override
   String marketNeedsApp(String version) {
-    return '需要 DSH Go Plus $version 或更高版本';
+    return '需要 DSH Go $version 或更高版本';
   }
 
   @override
@@ -11256,7 +11256,7 @@ class L10nZh extends L10n {
       'sui': '用 Sui 开启',
       'root': '用 Root 开启',
       'adb': '用自连 ADB 开启',
-      'other': '启用虚拟屏',
+      'other': '启用不打扰模式',
     });
     return '$_temp0';
   }
@@ -11953,7 +11953,7 @@ class L10nZh extends L10n {
 
   @override
   String get phonePrivilegedRootRiskBody =>
-      'root 管理器（Magisk、KernelSU 或 APatch）会弹窗问你。允许后，DSH Go Plus 以 root 运行自己的后台服务；只有打开「保持 root 通道」，断开或重启后才会自己再去申请。';
+      'root 管理器（Magisk、KernelSU 或 APatch）会弹窗问你。允许后，DSH Go 以 root 运行自己的后台服务；只有打开「保持 root 通道」，断开或重启后才会自己再去申请。';
 
   @override
   String phoneKeepTitle(String mode) {
@@ -13848,7 +13848,7 @@ class L10nZh extends L10n {
 
   @override
   String plugslotsIssueNeedsApp(String version) {
-    return '需要 DSH Go Plus $version 或更新版本';
+    return '需要 DSH Go $version 或更新版本';
   }
 
   @override
@@ -15826,7 +15826,7 @@ class L10nZh extends L10n {
 
   @override
   String remotePairOtherServerBody(String server) {
-    return '这个二维码来自 $server，和 DSH Go Plus 现在用的 Remote 服务器不同。切换过去继续吗？两个服务器的登录各自保留。';
+    return '这个二维码来自 $server，和 DSH Go 现在用的 Remote 服务器不同。切换过去继续吗？两个服务器的登录各自保留。';
   }
 
   @override
@@ -15947,12 +15947,12 @@ class L10nZh extends L10n {
 
   @override
   String askAiAboutApp(String question) {
-    return '关于 DSH Go Plus App：$question';
+    return '关于 DSH Go App：$question';
   }
 
   @override
   String askAiWithGuide(String question) {
-    return '关于 DSH Go Plus App：$question\n请按附件里的使用说明回答。';
+    return '关于 DSH Go App：$question\n请按附件里的使用说明回答。';
   }
 
   @override
@@ -17349,7 +17349,7 @@ class L10nZh extends L10n {
 
   @override
   String shellSkillInstallPrompt(String skill) {
-    return '请在这台主机上安装 DSH Go Plus 的界面技能 $skill：';
+    return '请在这台主机上安装 DSH Go 的界面技能 $skill：';
   }
 
   @override
@@ -17468,16 +17468,7 @@ class L10nZh extends L10n {
   }
 
   @override
-  String starPromptTitle(int hours) {
-    String _temp0 = intl.Intl.pluralLogic(
-      hours,
-      locale: localeName,
-      other: '本鱼已经在 DSH Go Plus 里陪你 $hours 个小时啦⁠~',
-      one: '本鱼已经在 DSH Go Plus 里陪你一个小时啦⁠~',
-      zero: '本鱼已经在 DSH Go Plus 里陪你半个小时啦⁠~',
-    );
-    return '$_temp0';
-  }
+  String get speechReadAloud => '朗读';
 
   @override
   String get speechReadAloudStop => '停止朗读';
@@ -17495,7 +17486,7 @@ class L10nZh extends L10n {
   String get speechVoiceHello => '你好，这是朗读的声音。';
 
   @override
-  String get starSettingsTitle => '给 DSH Go Plus 点个 star';
+  String get speechVoiceDeepseek => 'DeepSeek';
 
   @override
   String get speechVoiceDeepseekHint => '登录的 DeepSeek 账号付费；没登录，或账号不能用于语音时，用设置里的 API Key。不用另外配置';
@@ -17522,7 +17513,7 @@ class L10nZh extends L10n {
   String get speechVoiceFollowHint => '用设置 › 语音里朗读的声音';
 
   @override
-  String get stateDiagnosticsSubject => 'DSH Go Plus 诊断包';
+  String get speechNotSetUp => '朗读的声音还没设置好，去设置 › 语音看看';
 
   @override
   String get speechNoCredential => '要先登录 DeepSeek 账号，或在设置里填 API Key';
@@ -17818,7 +17809,7 @@ class L10nZh extends L10n {
   String get starPromptLater => '下次再说';
 
   @override
-  String get starSettingsTitle => '给 DSH Go 点个 star';
+  String get starSettingsTitle => '给 DSH Go Plus 点个 star';
 
   @override
   String get hubStartPage => '起始页';
@@ -17847,7 +17838,7 @@ class L10nZh extends L10n {
   String get phoneStartupPortNotReady => '已收到启动标记，但本机服务端口尚未就绪，请查看日志';
 
   @override
-  String get stateDiagnosticsSubject => 'DSH Go 诊断包';
+  String get stateDiagnosticsSubject => 'DSH Go Plus 诊断包';
 
   @override
   String get stateStoragePermission => '没有存储权限，存不进「下载」';
@@ -20164,7 +20155,7 @@ class L10nZh extends L10n {
   }
 
   @override
-  String get tavernStorybookMadeWith => '用 DSH Go 酒馆写成';
+  String get tavernStorybookMadeWith => '用 DSH Go Plus 酒馆写成';
 
   @override
   String get tavernStorybookContents => '目录';
@@ -21178,7 +21169,7 @@ class L10nZh extends L10n {
   }
 
   @override
-  String get tavernStorybookMadeWith => '用 DSH Go Plus 酒馆写成';
+  String get tavernBranchHere => '从这里分叉';
 
   @override
   String get tavernBranchedHere => '回到了这一条，后面的内容留在「分支」里';
@@ -23984,7 +23975,7 @@ class L10nZh extends L10n {
 
   @override
   String viewContinueHeader(String value) {
-    return '> 分享的 DSH Go Plus 对话 · $value\n';
+    return '> 分享的 DSH Go 对话 · $value\n';
   }
 
   @override
@@ -24038,7 +24029,7 @@ class L10nZh extends L10n {
 
   @override
   String viewShareLinkText(String first, String second) {
-    return '「$first」· DSH Go Plus 对话\n$second';
+    return '「$first」· DSH Go 对话\n$second';
   }
 
   @override
@@ -25080,7 +25071,7 @@ class L10nZh extends L10n {
 
   @override
   String workshopMinApp(String version) {
-    return '需要 DSH Go Plus $version 或更新的版本。';
+    return '需要 DSH Go $version 或更新的版本。';
   }
 
   @override
