@@ -698,7 +698,9 @@ class _WebViewPageState extends State<WebViewPage> {
               _set(() => _loading = false);
               _appliedInsets = null;
               _applyInsets();
-              if (widget._adapt) unawaited(_injectPhoneLayout());
+              // 手机布局的 CSS 会打乱网页端顶栏（按钮重叠、图标不可见），在弄清它的
+              // 类名之前不再注入；只保留下面这段只影响浮层的安全区修正。
+              unawaited(_injectSafeArea());
               if (widget.dshWeb) unawaited(_injectBackBridge());
               if (widget.dshWeb) unawaited(_injectOpenBridge());
               if (widget.dshWeb) unawaited(_injectSidebarBridge());
@@ -967,6 +969,19 @@ class _WebViewPageState extends State<WebViewPage> {
       js,
     ].join('\n');
   });
+
+  /// 浮层（设置页、弹窗、抽屉）顶部补齐状态栏高度。只动这几类节点。
+  Future<void> _injectSafeArea() async {
+    try {
+      final css = await rootBundle.loadString('assets/web/dsh_web_safe.css');
+      final js = ";(function(){var s=document.getElementById('dsh-app-safe');"
+          "if(!s){s=document.createElement('style');s.id='dsh-app-safe';document.head.appendChild(s);}"
+          "s.textContent=${jsonEncode(css)};})();";
+      await _controller.runJavaScript(js);
+    } catch (_) {
+      // 页面还没有 DOM：下次加载再来一次。
+    }
+  }
 
   Future<void> _injectPhoneLayout() async {
     try {
