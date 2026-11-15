@@ -975,14 +975,46 @@ class _WebViewPageState extends State<WebViewPage> {
   });
 
   /// 浮层（设置页、弹窗、抽屉）顶部补齐状态栏高度。只动这几类节点。
+  /// 让网页里的"浮层"避开状态栏。
+  ///
+  /// 不用类名匹配（这套前端的类名是哈希，换版本就失效）：直接在 DOM 里找满足
+  /// "position:fixed 且贴住页面顶部、且高度接近整屏"的元素，把它们往下推。
+  /// 判断依据是几何位置，不依赖任何类名。
   Future<void> _injectSafeArea() async {
+    const js = r"""
+;(function(){
+  var css = getComputedStyle(document.documentElement);
+  var v = parseFloat(css.getPropertyValue('--dsh-app-inset-top')) || 0;
+  var pad = Math.max(12, v) + 16;
+  function fix(){
+    var vh = window.innerHeight;
+    var nodes = document.querySelectorAll('body *');
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      if (el.dataset.dshSafe === '1') continue;
+      var st = getComputedStyle(el);
+      if (st.position !== 'fixed' && st.position !== 'absolute') continue;
+      var r = el.getBoundingClientRect();
+      if (r.height < vh * 0.6) continue;        // 只处理接近整屏的浮层
+      if (r.top > 24) continue;                 // 只处理贴着顶部的
+      el.style.setProperty('padding-top', pad + 'px', 'important');
+      el.style.setProperty('box-sizing', 'border-box', 'important');
+      el.dataset.dshSafe = '1';
+    }
+  }
+  fix();
+  if (!window.__dshSafeObs) {
+    window.__dshSafeObs = new MutationObserver(function(){ clearTimeout(window.__dshSafeT);
+      window.__dshSafeT = setTimeout(fix, 120); });
+    window.__dshSafeObs.observe(document.body, {childList: true, subtree: true});
+  }
+})();
+""";
     try {
-      final css = await rootBundle.loadString('assets/web/dsh_web_safe.css');
-      final js = ";(function(){var s=document.getElementById('dsh-app-safe');"
-          "if(!s){s=document.createElement('style');s.id='dsh-app-safe';document.head.appendChild(s);}"
-          "s.textContent=${jsonEncode(css)};})();";
       await _controller.runJavaScript(js);
-    } catch (_) {}
+    } catch (_) {
+      // 页面还没有 DOM：下次加载再试。
+    }
   }
 
   Future<void> _injectPhoneLayout() async {
