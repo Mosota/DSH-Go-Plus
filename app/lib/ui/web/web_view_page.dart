@@ -985,7 +985,7 @@ class _WebViewPageState extends State<WebViewPage> {
 ;(function(){
   var css = getComputedStyle(document.documentElement);
   var v = parseFloat(css.getPropertyValue('--dsh-app-inset-top')) || 0;
-  var pad = Math.max(12, v) + 16;
+  var pad = Math.max(28, v) + 32;   // 用户要求：明显离状态栏远一点
   function fix(){
     var vh = window.innerHeight;
     var nodes = document.querySelectorAll('body *');
@@ -995,8 +995,8 @@ class _WebViewPageState extends State<WebViewPage> {
       var st = getComputedStyle(el);
       if (st.position !== 'fixed' && st.position !== 'absolute') continue;
       var r = el.getBoundingClientRect();
-      if (r.height < vh * 0.6) continue;        // 只处理接近整屏的浮层
-      if (r.top > 24) continue;                 // 只处理贴着顶部的
+      if (r.height < vh * 0.5) continue;        // 只处理接近整屏的浮层
+      if (r.top > 48) continue;                 // 只处理贴着顶部的
       el.style.setProperty('padding-top', pad + 'px', 'important');
       el.style.setProperty('box-sizing', 'border-box', 'important');
       el.dataset.dshSafe = '1';
