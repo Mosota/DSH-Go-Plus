@@ -888,7 +888,8 @@ class _ChatListState extends ConsumerState<ChatList> with SingleTickerProviderSt
     _running = s.running;
     _deriveRows(
       s,
-      foldTurns: ref.watch(settingsProvider.select((s) => s.foldCompletedTurns)),
+      // 总收起行 is part of the chat layout, not a preference: the switch that used to\न      // gate it left installs without any way to fold a turn.
+      foldTurns: true,
       artifacts: ref.watch(sessionArtifactsProvider(widget.sessionId)),
     );
     final rows = _rows;
