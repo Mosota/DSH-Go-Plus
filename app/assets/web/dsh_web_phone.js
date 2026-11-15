@@ -26,21 +26,6 @@
     viewport.setAttribute('content', 'width=device-width, initial-scale=1, viewport-fit=cover');
   }
 
-  // 布局属性平时由 Flutter 侧(WebPageInsets.script)写入。万一那次注入没到
-  // (页面换文档、SPA 抢先渲染、脚本顺序),整套 CSS 会因为没有
-  // html[data-dsh-app-layout] 而全部落空——这里按窗口宽度补一个兜底,
-  // 让「网页版手机布局」开关至少能把手机布局立起来。放到下一拍量宽度:
-  // 刚补的 viewport 要重排一次,innerWidth 才是手机宽度。
-  if (!document.documentElement.getAttribute('data-dsh-app-layout')) {
-    setTimeout(function () {
-      if (document.documentElement.getAttribute('data-dsh-app-layout')) return;
-      document.documentElement.setAttribute(
-        'data-dsh-app-layout',
-        window.innerWidth < 1024 ? 'drawer' : 'desktop'
-      );
-    }, 0);
-  }
-
   // Install the display default only here, before the page's styles. Declaring
   // it first in the appended phone CSS would give it a later layer position.
   var defaults = document.createElement('style');
