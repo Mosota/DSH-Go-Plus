@@ -137,7 +137,7 @@ class SettingsController extends Notifier<AppSettings> {
 
   /// 一次性迁移:旧默认是 true,已落盘的值也归零,保证升级后先看到逐行步骤;
   /// 之后用户仍可在「设置 → 外观」里自己重新打开折叠。
-  static const _foldTurnsResetKey = 'fold_completed_turns_reset_v4';
+  static const _foldTurnsResetKey = 'fold_completed_turns_reset_v5';
   static const _visualRepliesKey = 'visual_replies';
   static const _secure = FlutterSecureStorage();
   late Future<void> _loaded;
