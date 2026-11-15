@@ -24,7 +24,7 @@ class AppSettings {
     this.hardwareEnterSends = false,
     this.chatTextScale = 1.0,
     // 整轮折叠是我们加的可选形态,默认关闭:聊天保持上游的逐行步骤。
-    this.foldCompletedTurns = false,
+    this.foldCompletedTurns = true,
     this.visualReplies = true,
     this.customProviderIds = const {},
     this.loaded = false,
@@ -189,7 +189,7 @@ class SettingsController extends Notifier<AppSettings> {
       chatSuggestions: prefs.getBool(_chatSuggestionsKey) ?? true,
       hardwareEnterSends: prefs.getBool(_hardwareEnterKey) ?? false,
       chatTextScale: _knownScale(prefs.getDouble(_chatTextScaleKey)),
-      foldCompletedTurns: prefs.getBool(_foldTurnsKey) ?? false,
+      foldCompletedTurns: prefs.getBool(_foldTurnsKey) ?? true,
       visualReplies: prefs.getBool(_visualRepliesKey) ?? true,
       customProviderIds: providerIds,
       loaded: true,
