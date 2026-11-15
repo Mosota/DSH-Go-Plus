@@ -1,11 +1,18 @@
-/* 网页版「设置 / 弹层」顶部安全区
-   状态栏、刘海屏下，浮层会顶到最上面；这里只做一件事：给浮层补上顶部内边距。
-   不涉及顶栏、按钮、宽度、主题，避免再影响主界面布局。 */
+/* 网页版浮层（设置 / 弹窗 / 抽屉）顶部留白
+   目标：不贴状态栏。状态栏高度取 App 注入的 --dsh-app-inset-top，
+   再额外留 16px，避免只挪一点点。 */
 [class*="_overlay_"],
 [class*="_modal_"],
 [class*="_dialog_"],
 [class*="_sheet_"],
 [class*="_drawer_"] {
-  padding-top: var(--dsh-app-inset-top, 0px) !important;
+  padding-top: calc(max(12px, var(--dsh-app-inset-top, 0px)) + 16px) !important;
   box-sizing: border-box;
+}
+
+/* 弹层里第一块内容也留一点，避免标题贴着圆角 */
+[class*="_overlay_"] > *:first-child,
+[class*="_modal_"] > *:first-child,
+[class*="_dialog_"] > *:first-child {
+  margin-top: 4px;
 }
