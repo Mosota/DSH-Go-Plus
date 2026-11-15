@@ -103,7 +103,7 @@ void openDshWeb(BuildContext context, WidgetRef ref, {DshWebTarget target = cons
         // Android suspends the page in the background and its socket drops.
         reloadAfterBackground: const Duration(seconds: 60),
         dshWeb: true,
-        phoneLayout: ref.read(settingsProvider).webPhoneLayout,
+        phoneLayout: true,
         openTarget: target,
       );
     case NoDshWeb(:final reason):
