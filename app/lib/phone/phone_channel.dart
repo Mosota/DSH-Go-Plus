@@ -241,57 +241,6 @@ enum PhoneBackgroundViewport {
   }
 }
 
-/// Physical cleanup of the original settings probe; this is not a new probe action.
-class PhoneGateCleanup {
-  const PhoneGateCleanup({required this.state, required this.canRetry, this.handle});
-  final String state;
-  final bool canRetry;
-  final String? handle;
-  bool get blocked => state != 'idle';
-
-  static PhoneGateCleanup? parse(Object? value) {
-    if (value is! Map || value['v'] is! int || value['v'] != 1 ||
-        value['canRetry'] is! bool ||
-        !const {'idle', 'pending', 'cleaning', 'unknown'}.contains(value['state'])) {
-      return null;
-    }
-    final state = value['state'] as String;
-    final handle = value['handle'];
-    if (state == 'idle') {
-      if (handle != null || value['canRetry'] != false) return null;
-      return const PhoneGateCleanup(state: 'idle', canRetry: false);
-    }
-    if (handle is! String || handle.isEmpty || handle.length > 128 ||
-        (state != 'unknown' && value['canRetry'] == true)) {
-      return null;
-    }
-    return PhoneGateCleanup(state: state, canRetry: value['canRetry'] as bool, handle: handle);
-  }
-}
-
-/// Physical-resource recovery is independent of acknowledging a logical task interruption.
-class PhoneResourceRecovery {
-  const PhoneResourceRecovery({required this.state, required this.count, required this.canRetry, this.reason});
-  final String state;
-  final int count;
-  final bool canRetry;
-  final String? reason;
-  bool get blocked => state != 'clear';
-
-  static PhoneResourceRecovery? parse(Object? value) {
-    if (value is! Map || value['v'] is! int || value['v'] != 1 ||
-        value['count'] is! int || (value['count'] as int) < 0 || (value['count'] as int) > 256 ||
-        value['canRetry'] is! bool ||
-        !const {'loading', 'clear', 'pending', 'error', 'recovering'}.contains(value['state']) ||
-        value['reason'] != null && value['reason'] is! String) {
-      return null;
-    }
-    if (value['state'] == 'recovering' && value['canRetry'] == true) return null;
-    return PhoneResourceRecovery(state: value['state'] as String, count: value['count'] as int,
-      canRetry: value['canRetry'] as bool, reason: value['reason'] as String?);
-  }
-}
-
 /// Native admission capacity, independent of the legacy global parallelLimit field.
 class BackgroundParallelism {
   const BackgroundParallelism._(this.configuredLimit, this.effectiveLimit, this.heldSlots, this.reason);
@@ -312,9 +261,8 @@ class BackgroundParallelism {
         held is! int || held < 0 || held > 3) {
       return null;
     }
-    if (reason != null && !const {
-      'off', 'unsupported', 'connectionRequired', 'busy', 'resourceRecovery', 'peerUnsupported', 'transportSerial',
-    }.contains(reason)) {
+    if (reason != null &&
+        !const {'off', 'unsupported', 'connectionRequired', 'busy', 'transportSerial'}.contains(reason)) {
       return null;
     }
     if (effective == 0 && reason == null) return null;
@@ -366,8 +314,6 @@ class PhoneBackgroundStatus {
     this.viewport,
     this.previewVersion,
     this.previewEnabled = false,
-    this.gateCleanup,
-    this.resourceRecovery,
     this.parallelism,
     this.shell,
   });
@@ -385,8 +331,6 @@ class PhoneBackgroundStatus {
     viewport: PhoneBackgroundViewport.fromMap(_map(m['viewport'])),
     previewVersion: _int(_map(m['preview'])['v']),
     previewEnabled: _flag(_map(m['preview'])['enabled']),
-    gateCleanup: PhoneGateCleanup.parse(m['gateCleanup']),
-    resourceRecovery: PhoneResourceRecovery.parse(m['resourceRecovery']),
     parallelism: BackgroundParallelism.parse(m['parallelism']),
     shell: m['shell'] == null ? null : PhoneShellIdentity.fromMap(_map(m['shell'])),
   );
@@ -412,8 +356,6 @@ class PhoneBackgroundStatus {
   final PhoneBackgroundViewport? viewport;
   final int? previewVersion;
   final bool previewEnabled;
-  final PhoneGateCleanup? gateCleanup;
-  final PhoneResourceRecovery? resourceRecovery;
   final BackgroundParallelism? parallelism;
 
   /// B: 当前身份 for the shell page; null on older native modules (or before any probe).
@@ -843,15 +785,19 @@ class PhoneStatus {
 // ── 悬浮条 ───────────────────────────────────────────────────────────────────
 
 /// 设置 → 手机操控 → 悬浮条 (`overlayPrefs` / `setOverlayPrefs`): how opaque the
-/// pill is when idle, and whether it folds into the ball by itself. A showing
-/// overlay follows changes at once.
+/// ball is when idle, and whether an idle capsule folds into the ball by itself
+/// (on unless the person turned it off, as OverlayPrefs.kt). A showing overlay
+/// follows changes at once.
 class PhoneOverlayPrefs {
-  const PhoneOverlayPrefs({this.idleOpacity = defaultOpacity, this.autoCollapse = false});
+  const PhoneOverlayPrefs({this.idleOpacity = defaultOpacity, this.autoCollapse = defaultAutoCollapse});
 
   factory PhoneOverlayPrefs.fromMap(Map<Object?, Object?> m) => PhoneOverlayPrefs(
     idleOpacity: clampOpacity(m['idleOpacity'] is num ? (m['idleOpacity'] as num).toDouble() : defaultOpacity),
-    autoCollapse: _flag(m['autoCollapse']),
+    autoCollapse: _maybeFlag(m['autoCollapse']) ?? defaultAutoCollapse,
   );
+
+  /// On: the capsule shows what DSH starts doing, then gets out of the way.
+  static const defaultAutoCollapse = true;
 
   /// 70 %: the line reads over light and dark pages alike (see OverlayPrefs.kt).
   static const defaultOpacity = 0.7;
@@ -1682,11 +1628,6 @@ class PhoneChannel {
       return ScreenTestResult(ok: false, reason: e.message ?? e.code);
     }
   }
-
-  Future<PhoneResult> retryBackgroundRecovery() => _result('retryBackgroundRecovery');
-
-  Future<PhoneResult> retryBackgroundGateCleanup(String handle) =>
-      _result('retryBackgroundGateCleanup', {'v': 1, 'handle': handle});
 
   Future<PhoneResult> setBackgroundMode(PhoneBackgroundMode mode) => _result('setBackgroundMode', {'mode': mode.name});
 
