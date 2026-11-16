@@ -47,15 +47,17 @@ String modelShortName(ModelSelection? selection, ModelCatalog? catalog) {
   return shortModelName(findModel(catalog, selection)?.name ?? selection.model);
 }
 
-/// 思考深度的中文名。协议词(off/low/high/max)不直接给人看。
+/// 思考深度的名字：统一用英文档位名（Off / Minimal / Low / Medium / High /
+/// Xhigh / Max），与协议词一一对应，切语言也不变——这几个是模型厂商的
+/// 通用档位，不是界面文案。
 String effortLabel(String id, [String? fallback]) => switch (id) {
-  'off' || 'none' => appL10n.viewModelThinkingOff,
-  'minimal' => appL10n.viewModelThinkingMinimal,
-  'low' => appL10n.viewModelThinkingLow,
-  'medium' => appL10n.viewModelThinkingMedium,
-  'high' => appL10n.viewModelThinkingHigh,
-  'xhigh' => appL10n.viewModelThinkingXhigh,
-  'max' => appL10n.viewModelThinkingMax,
+  'off' || 'none' => 'Off',
+  'minimal' => 'Minimal',
+  'low' => 'Low',
+  'medium' => 'Medium',
+  'high' => 'High',
+  'xhigh' => 'Xhigh',
+  'max' => 'Max',
   _ => fallback ?? id,
 };
 
