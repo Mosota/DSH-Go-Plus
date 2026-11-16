@@ -219,6 +219,25 @@ object GuestSetup {
     }.getOrDefault(false)
 
     /**
+     * 域名解析补丁。
+     *
+     * 运行时自带的 `direct/dns.mjs` 在 `ADDRCONFIG` 分支里按 `networkInterfaces()`
+     * 过滤协议族；proroot 里这个调用只返回 `lo`（internal），于是「可用族」是空集合，
+     * A/AAAA 双双被过滤掉 → 所有外部域名 ENOTFOUND（账号登录、插件安装、web_fetch 全废）。
+     *
+     * 上游只修了「枚举为空不筛」，没修「枚举到环回仍筛」。这里每次启动把它换成
+     * 判断「非环回接口集合非空才筛」的版本；内容相同就跳过，运行时不匹配就重写。
+     */
+    fun writeDnsShim(context: Context, rootfs: File): Boolean = runCatching {
+        val target = File(rootfs, "opt/dsh-go/direct/dns.mjs")
+        if (!target.parentFile.isDirectory) return false
+        val bytes = context.assets.open("dshgo/direct/dns.mjs").readBytes()
+        if (target.isFile && target.readBytes().contentEquals(bytes)) return false
+        target.writeBytes(bytes)
+        true
+    }.getOrDefault(false)
+
+    /**
      * The web UI's phone layout lives in the runtime's frontend bundle, which the APK cannot
      * rebuild here. Its selectors age out whenever that bundle is rebuilt, so the copy shipped
      * as an asset is written over it before every start.

@@ -520,8 +520,11 @@ class RuntimeController private constructor(private val app: Context) : DshProce
                     log("[dsh-app] completed engine cleanup failed: ${e.message}", "system")
                 }
                 noteDns(GuestSetup.writeResolvConf(app, installer.rootfs), DnsConfigSource.START)
-                probeGuestNetwork()
                 GuestSetup.writeNpmConfig(app, installer.rootfs)
+                if (GuestSetup.writeDnsShim(app, installer.rootfs)) {
+                    log("[dsh-app] dns shim patched: loopback-only interface list no longer drops both families", "system")
+                }
+                probeGuestNetwork()
                 val storage = pendingPhoneStorage && PhoneStorage.isGranted(app) && PhoneStorage.binds().isNotEmpty()
                 PhoneStorage.syncShortcut(installer.rootfs, storage)
                 // Phone control: bridge up and guest files written before DSH starts; off in safe mode.

@@ -126,6 +126,29 @@ class _TurnProcessState extends State<TurnProcess> with SingleTickerProviderStat
 
   bool get _open => _reveal.status == AnimationStatus.forward || _reveal.status == AnimationStatus.completed;
 
+  /// 用户自己点过"收起"：此后这一轮不再自动展开，尊重人的选择。
+  bool _userCollapsed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 模型正在回答时，「思考中」这一行默认展开；步骤行仍各自收起。
+    // （之前这里从收起状态起步，要看过程还得先手动点一下。）
+    if (!widget.settle && turnProcessKind(widget.row) == TurnProcessKind.running) {
+      _reveal.value = 1;
+    }
+  }
+
+  @override
+  void didUpdateWidget(TurnProcess oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 这一轮从「已完成」被继续（插话/追加）：重新展开，除非用户自己收过。
+    final running = turnProcessKind(widget.row) == TurnProcessKind.running;
+    if (running && !_userCollapsed && _reveal.isDismissed && !_settling) {
+      _reveal.value = 1;
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -158,6 +181,7 @@ class _TurnProcessState extends State<TurnProcess> with SingleTickerProviderStat
 
   void _toggle() {
     if (_open) {
+      _userCollapsed = true;
       _reveal.reverse();
     } else {
       _reveal.forward();

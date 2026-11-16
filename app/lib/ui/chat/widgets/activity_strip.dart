@@ -107,7 +107,8 @@ class _ActivityStripSlotState extends ConsumerState<ActivityStripSlot> with Sing
         if (shown != null) {
           _last = shown;
           // 等你时最慢的一档(0),不停下。
-          _lastLevel = shown.waiting || shown.kind == ActivityKind.stopping ? 0 : pulse.level;
+          // 图形要静止：以前用 pulse.level 让点阵随活动忽明忽暗，看起来像在跳动。
+          _lastLevel = shown.waiting || shown.kind == ActivityKind.stopping ? 0 : 1;
         }
         _drive(shown != null);
         final strip = _last;

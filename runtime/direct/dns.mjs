@@ -96,11 +96,13 @@ export function createLookup({ resolvConf, hostsFile, Resolver = dns.Resolver, w
       // denies getifaddrs cannot safely infer which family to suppress.
       try {
         const entries = Object.values(networkInterfaces()).flat();
-        // An empty observation does not establish that either family is absent.
-        // Nonempty observations retain the existing loopback/family filtering.
-        if (entries.length) {
-          const available = new Set(entries.filter((e) => e && !e.internal)
-            .map((e) => e.family === 'IPv6' || e.family === 6 ? 6 : 4));
+        // Loopback-only enumeration (proot/proroot always answers just `lo`) says
+        // nothing about reachability: filtering on it leaves no family at all and
+        // every lookup fails with ENOTFOUND. Only narrow when a real, non-loopback
+        // interface was seen.
+        const available = new Set(entries.filter((e) => e && !e.internal)
+          .map((e) => e.family === 'IPv6' || e.family === 6 ? 6 : 4));
+        if (available.size > 0) {
           families = families.filter((value) => available.has(value));
         }
       } catch { /* retain both families when Android denies interface enumeration */ }
