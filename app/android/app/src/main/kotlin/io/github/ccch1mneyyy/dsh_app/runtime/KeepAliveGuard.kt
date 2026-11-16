@@ -39,7 +39,7 @@ object KeepAliveGuard {
 
     /** The watchdog's probe interval: global saver wins, then economy, then the normal 60 s. */
     fun watchSeconds(context: Context): Int = when {
-        globalPowerSaver(context) -> 300
+        globalPowerSaver(context) -> 600
         economyEnabled(context) -> 300
         else -> 60
     }

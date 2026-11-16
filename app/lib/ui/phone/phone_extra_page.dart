@@ -48,12 +48,12 @@ class PhoneExtraPage extends ConsumerWidget {
           children: [
             ListPageRow(
               icon: AppIcons.keepAlive,
-              title: '保持后台运行',
+              title: '任务进行时保持后台运行',
               subtitle: !channelReady
                   ? '特权通道未就绪：开关已记住，通道开启后生效'
                   : keep.keepAliveEnabled
-                  ? '前台常驻 + 系统白名单 + shell 守护进程'
-                  : '已关闭：撤销白名单并停止守护进程',
+                  ? '有任务时才占住 CPU：任务结束即释放唤醒锁、交回系统休眠；期间维持前台通知、系统白名单与 shell 守护进程'
+                  : '已关闭：不占 CPU、撤销白名单并停止守护进程',
               onTap: channelReady ? () => unawaited(ref.read(keepAlivePrefsProvider.notifier).setEnabled(!keep.keepAliveEnabled)) : null,
               trailing: Switch(
                 value: keep.keepAliveEnabled,
@@ -63,7 +63,7 @@ class PhoneExtraPage extends ConsumerWidget {
             ListPageRow(
               icon: AppIcons.power,
               title: '保活时省电',
-              subtitle: '延长守护间隔、空闲时短时续租，代价是深度休眠后恢复稍慢',
+              subtitle: '守护进程 5 分钟探一次、状态每 5 秒刷新一次，代价是深度休眠后恢复稍慢',
               onTap: channelReady && keep.keepAliveEnabled
                   ? () => unawaited(ref.read(keepAlivePrefsProvider.notifier).setEconomy(!keep.keepAliveEconomy))
                   : null,

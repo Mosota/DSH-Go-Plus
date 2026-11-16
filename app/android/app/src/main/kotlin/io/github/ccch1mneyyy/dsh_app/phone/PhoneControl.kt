@@ -368,7 +368,14 @@ class PhoneControl private constructor(private val app: Context) : PhoneEnv, Con
         }
         (app as? Application)?.let { AppVisibility.register(it) }
         tasks.addListener { onTask(it) }
-        ticker.scheduleWithFixedDelay({ tick() }, 2, 2, TimeUnit.SECONDS)
+        // 全局省电: the status ticker only refreshes the card; 2 s of it costs more than it shows.
+        // 省电 15 s / 保活省电 5 s / 正常 2 s.
+        val tickSeconds = when {
+            io.github.ccch1mneyyy.dsh_app.runtime.PowerSaver.enabled -> 15L
+            io.github.ccch1mneyyy.dsh_app.runtime.KeepAliveGuard.economyEnabled(app) -> 5L
+            else -> 2L
+        }
+        ticker.scheduleWithFixedDelay({ tick() }, tickSeconds, tickSeconds, TimeUnit.SECONDS)
         // The app's start: a force stop took the accessibility service out of the settings.
         cleanupIo.execute { taskJournal.load(); emitStatus() }
         ticker.execute(::keep)

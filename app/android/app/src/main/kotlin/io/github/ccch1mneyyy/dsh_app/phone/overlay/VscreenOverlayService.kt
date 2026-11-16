@@ -127,6 +127,10 @@ class VscreenOverlayService : Service() {
     /** The wait before the next frame: quick while something moves, slow while nothing does. */
     private var pollMs = FAST_MS
 
+    /** 全局省电: previews are a mirror, not the work — look less often when the CPU is rationed. */
+    private fun fastMs(): Long = if (PowerSaver.enabled) FAST_MS * 4 else FAST_MS
+    private fun slowMs(): Long = if (PowerSaver.enabled) SLOW_MS * 3 else SLOW_MS
+
     /** The last frame's rough signature, [NO_FRAME] when none was there: two alike slow the poll. */
     private var lastSig = NO_FRAME
 
@@ -902,7 +906,7 @@ class VscreenOverlayService : Service() {
      * nothing moves, so the wait goes to [SLOW_MS]; anything new brings it back to [FAST_MS].
      */
     private fun noteFrame(sig: Long) {
-        pollMs = if (sig == lastSig) SLOW_MS else FAST_MS
+        pollMs = if (sig == lastSig) slowMs() else fastMs()
         lastSig = sig
     }
 

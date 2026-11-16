@@ -62,7 +62,9 @@ class DshService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        acquireWakeLock()
+        // 任务进行时保持后台运行: the CPU is held only while a task runs. Idle releases
+        // it at once, so the phone can doze instead of being pinned awake by the shell.
+        if (busy) acquireWakeLock() else releaseWakeLock()
         val controller = RuntimeController.get(this)
         // 息屏保活: while the engine is up the service is never left without its foreground
         // notification, whichever command arrives (a stop may still take it down below).
@@ -210,8 +212,8 @@ class DshService : Service() {
     }
 
     private fun acquireWakeLock() {
-        // 保持后台运行 off: no privileged wake lock; the foreground service still keeps the engine
-        // up while the app is alive, which is the upstream behaviour this switch falls back to.
+        // 任务进行时保持后台运行 off: no privileged wake lock at all; the foreground service
+        // still keeps the engine up while the app is alive (upstream behaviour).
         if (!KeepAliveGuard.keepAliveEnabled(this)) {
             wakeLock?.let { if (it.isHeld) it.release() }
             wakeLock = null
@@ -219,7 +221,7 @@ class DshService : Service() {
         }
         if (wakeLock?.isHeld == true) return
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        // No timeout: released only in onDestroy (or when 保持后台运行 is turned off).
+        // No timeout: released as soon as the last task ends (setBusy) or the switch goes off.
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "dsh-app:runtime").apply {
             setReferenceCounted(false)
             acquire()

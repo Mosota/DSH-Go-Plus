@@ -557,9 +557,10 @@ class RuntimeController private constructor(private val app: Context) : DshProce
                         }
                     }
                 }
-                // Node prefers AAAA when the network hands out IPv6 DNS; proot has no IPv6
-                // route, so every fetch hangs until it times out — 账号登录会报"连不上
-                // DeepSeek"，插件也装不上。ipv4first 让解析先走 A 记录。
+                // Node 默认可能先试 AAAA；这台手机的网络常常只有 A 记录真能连通，
+                // AAAA 一挂就是几十秒才超时——账号登录会报「连不上 DeepSeek」，
+                // 插件也装不上。ipv4first 让解析先走 A 记录（不影响真的只有 IPv6 的环境）。
+                // 注意：我们用 proroot（libproroot.so）做路径翻译，它本身不隔离网络。
                 runCatching {
                     val existing = env["NODE_OPTIONS"] ?: pendingEnv["NODE_OPTIONS"].orEmpty()
                     if (!existing.contains("--dns-result-order")) {
