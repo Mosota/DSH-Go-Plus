@@ -9,7 +9,7 @@ import '../../../l10n/l10n.dart';
 import '../../theme/app_icons.dart';
 import '../../theme/theme.dart';
 import '../chat_rows.dart';
-import 'quiet_dots.dart';
+import 'atom_glyph.dart';
 import 'stream_row.dart';
 
 /// 一轮的过程收成的一行:一行安静的摘要,点开在下面按原样列出思考、
@@ -195,7 +195,7 @@ class _TurnProcessState extends State<TurnProcess> with SingleTickerProviderStat
   Widget _statusGlyph(BuildContext context) {
     final colors = DshColors.of(context);
     return switch (turnProcessKind(widget.row)) {
-      TurnProcessKind.running => QuietDots(color: colors.textTertiary),
+      TurnProcessKind.running => AtomGlyph(color: colors.textTertiary),
       TurnProcessKind.completed => Icon(AppIcons.completed, size: 18, color: colors.textTertiary),
       TurnProcessKind.error => Icon(AppIcons.error, size: 18, color: colors.danger),
       TurnProcessKind.interrupted => Icon(AppIcons.blocked, size: 18, color: colors.textTertiary),
