@@ -520,6 +520,7 @@ class RuntimeController private constructor(private val app: Context) : DshProce
                     log("[dsh-app] completed engine cleanup failed: ${e.message}", "system")
                 }
                 noteDns(GuestSetup.writeResolvConf(app, installer.rootfs), DnsConfigSource.START)
+                probeGuestNetwork()
                 GuestSetup.writeNpmConfig(app, installer.rootfs)
                 val storage = pendingPhoneStorage && PhoneStorage.isGranted(app) && PhoneStorage.binds().isNotEmpty()
                 PhoneStorage.syncShortcut(installer.rootfs, storage)
@@ -554,6 +555,16 @@ class RuntimeController private constructor(private val app: Context) : DshProce
                             env["no_proxy"] = "localhost,127.0.0.1,::1"
                             if (pendingEnv["HTTP_PROXY"] == null) log("[dsh-app] proxy from system settings: $proxy", "system")
                         }
+                    }
+                }
+                // Node prefers AAAA when the network hands out IPv6 DNS; proot has no IPv6
+                // route, so every fetch hangs until it times out — 账号登录会报"连不上
+                // DeepSeek"，插件也装不上。ipv4first 让解析先走 A 记录。
+                runCatching {
+                    val existing = env["NODE_OPTIONS"] ?: pendingEnv["NODE_OPTIONS"].orEmpty()
+                    if (!existing.contains("--dns-result-order")) {
+                        env["NODE_OPTIONS"] = (existing + " --dns-result-order=ipv4first").trim()
+                        if (pendingEnv["NODE_OPTIONS"] == null) log("[dsh-app] node dns order: ipv4first", "system")
                     }
                 }
                 // pnpm/npm inside the guest: default to the mirror that actually answers here.
@@ -1176,6 +1187,31 @@ class RuntimeController private constructor(private val app: Context) : DshProce
                 }
             }
         }
+    }
+
+    /**
+     * 一次性探针：确认 guest 能不能真正解析并连上外网。
+     * 账号登录（Host 侧 fetch DeepSeek）和插件安装失败都是同一类症状，
+     * 有这一行日志就能判定是"解析失败"还是"连不上 443"，不必再猜。
+     */
+    private fun probeGuestNetwork() {
+        Thread({
+            for (host in listOf("platform.deepseek.com", "registry.npmmirror.com")) {
+                val started = System.currentTimeMillis()
+                val outcome = try {
+                    val addrs = java.net.InetAddress.getAllByName(host)
+                    val ipv6 = addrs.count { it is java.net.Inet6Address }
+                    val address = addrs.firstOrNull { it is java.net.Inet4Address } ?: addrs.first()
+                    java.net.Socket().use { s ->
+                        s.connect(java.net.InetSocketAddress(address, 443), 4_000)
+                    }
+                    "ok ipv4=${addrs.count { it is java.net.Inet4Address }} ipv6=$ipv6"
+                } catch (e: Exception) {
+                    "fail ${e.javaClass.simpleName}: ${e.message}"
+                }
+                log("[dsh-app] net $host -> $outcome (${System.currentTimeMillis() - started}ms)", "system")
+            }
+        }, "dsh-net-probe").apply { isDaemon = true }.start()
     }
 
     private fun log(line: String, stream: String, storageLine: String = line) {
