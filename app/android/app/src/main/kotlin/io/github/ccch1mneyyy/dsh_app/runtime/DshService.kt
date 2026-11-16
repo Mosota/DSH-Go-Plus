@@ -38,7 +38,10 @@ class DshService : Service() {
             if (KeepAliveGuard.keepAliveEnabled(this@DshService)) {
                 KeepAliveGuard.startAsync(this@DshService, running)
             }
-            keepAliveHandler.postDelayed(this, 60_000)
+            // 省电 vs 保活 的唯一冲突点就在这里：这条 tick 会经特权通道做 IO，
+            // 60 秒一次会把刚放掉的 CPU 又叫醒。省电开着就拉到 10 分钟。
+            val every = if (KeepAliveGuard.globalPowerSaver(this@DshService)) 600_000L else 60_000L
+            keepAliveHandler.postDelayed(this, every)
         }
     }
 
