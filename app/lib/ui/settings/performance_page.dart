@@ -91,7 +91,7 @@ class PerformancePage extends ConsumerWidget {
             SettingsSwitchTile(
               key: const ValueKey('global-power-saver'),
               title: '全局省电',
-              subtitle: '空闲时停预览、日志静默、守护探活 10 分钟一次、状态 15 秒一刷、取帧放慢 4 倍；任务运行与动效设置不受影响',
+              subtitle: '只放 CPU、不冻结引擎：熄屏且无任务时，60 秒后释放唤醒锁交给系统休眠；同时停预览、日志静默、守护 10 分钟一探、状态 15 秒一刷。亮屏或有任务立刻恢复正常',
               value: keep.globalPowerSaver,
               onChanged: (v) => unawaited(ref.read(keepAlivePrefsProvider.notifier).setGlobalPowerSaver(v)),
             ),

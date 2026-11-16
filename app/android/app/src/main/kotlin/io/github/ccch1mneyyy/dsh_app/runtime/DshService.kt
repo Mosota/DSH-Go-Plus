@@ -47,8 +47,15 @@ class DshService : Service() {
     override fun onCreate() {
         super.onCreate()
         live = this
-        // 息屏保活: the CPU is held only while a task runs; idle leans on the shell watchdog.
-        if (busy) acquireWakeLock() else releaseWakeLock()
+        // 息屏保活 + 省电（重置版）: 由 PowerPolicy 决定占不占 CPU。
+        interactive = (getSystemService(Context.POWER_SERVICE) as PowerManager).isInteractive
+        runCatching {
+            registerReceiver(screenReceiver, android.content.IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_ON)
+                addAction(Intent.ACTION_SCREEN_OFF)
+            })
+        }
+        settleWakeLock()
         PowerSaver.refresh(this)
         KeepAliveGuard.startAsync(this, isRunning)
         // The channel may come up after this service: retry quietly once a minute.
@@ -62,9 +69,8 @@ class DshService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // 任务进行时保持后台运行: the CPU is held only while a task runs. Idle releases
-        // it at once, so the phone can doze instead of being pinned awake by the shell.
-        if (busy) acquireWakeLock() else releaseWakeLock()
+        // 任务进行时保持后台运行: 占不占 CPU 交给 PowerPolicy（省电开启时按空闲程度放锁）。
+        settleWakeLock()
         val controller = RuntimeController.get(this)
         // 息屏保活: while the engine is up the service is never left without its foreground
         // notification, whichever command arrives (a stop may still take it down below).
@@ -147,6 +153,7 @@ class DshService : Service() {
     }
 
     override fun onDestroy() {
+        runCatching { unregisterReceiver(screenReceiver) }
         live = null
         keepAliveHandler.removeCallbacks(keepAliveTick)
         running = false
@@ -211,6 +218,43 @@ class DshService : Service() {
         controller.note(line)
     }
 
+    /** 屏幕是否亮着：省电模式下这是"该不该占 CPU"的关键输入。 */
+    @Volatile private var interactive = true
+
+    /** 进入空闲的起点（0 = 当前不算空闲）。由 [PowerPolicy.nextIdleSince] 维护。 */
+    private var idleSince = 0L
+
+    private val screenReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_ON -> {
+                    interactive = true
+                    settleWakeLock()
+                }
+                Intent.ACTION_SCREEN_OFF -> {
+                    interactive = false
+                    settleWakeLock()
+                    // 空闲满 grace 之后要再放一次锁：亮屏期间的信号可能刚刚过期。
+                    keepAliveHandler.postDelayed({ settleWakeLock() }, PowerPolicy.IDLE_GRACE_MS + 5_000)
+                }
+            }
+        }
+    }
+
+    /**
+     * 省电（重置版）: 按 [PowerPolicy] 决定占不占 CPU。**从不暂停或结束引擎进程**，
+     * 只释放唤醒锁让系统能休眠。
+     */
+    private fun settleWakeLock() {
+        val now = System.currentTimeMillis()
+        val eco = KeepAliveGuard.globalPowerSaver(this)
+        val starting = !running
+        idleSince = PowerPolicy.nextIdleSince(idleSince, starting, interactive, busy, now)
+        val keep = PowerPolicy.keepCpu(eco, starting, interactive, busy, idleSince, now)
+        if (keep) acquireWakeLock() else releaseWakeLock()
+        if (!keep) keepAliveHandler.postDelayed({ settleWakeLock() }, 30_000)
+    }
+
     private fun acquireWakeLock() {
         // 任务进行时保持后台运行 off: no privileged wake lock at all; the foreground service
         // still keeps the engine up while the app is alive (upstream behaviour).
@@ -250,9 +294,7 @@ class DshService : Service() {
         fun setBusy(service: DshService?, value: Boolean) {
             busy = value
             val svc = service ?: live ?: return
-            svc.keepAliveHandler.post {
-                if (value) svc.acquireWakeLock() else svc.releaseWakeLock()
-            }
+            svc.keepAliveHandler.post { svc.settleWakeLock() }
         }
 
         const val ACTION_INSTALL = "io.github.ccch1mneyyy.dsh_app.INSTALL"
@@ -346,7 +388,7 @@ class DshService : Service() {
         /** 保持后台运行 / 保活时省电 changed: re-evaluate the wake lock without restarting the engine. */
         fun refreshKeepAlive(context: Context) {
             val svc = live ?: return
-            if (busy) svc.acquireWakeLock() else svc.releaseWakeLock()
+            svc.settleWakeLock()
         }
 
         /**
