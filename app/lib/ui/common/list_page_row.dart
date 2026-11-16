@@ -34,7 +34,7 @@ class ListPageRow extends StatelessWidget {
     this.titleMaxLines = 1,
     this.subtitle,
     this.subtitleColor,
-    this.subtitleMaxLines = 3,
+    this.subtitleMaxLines = 8,
     this.badge,
     this.value,
     this.meta,

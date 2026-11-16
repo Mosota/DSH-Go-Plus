@@ -9,6 +9,7 @@ import '../../runtime/runtime_state.dart';
 import '../../runtime/local_footprint.dart';
 import '../../state/engine_control.dart';
 import '../../state/settings_state.dart';
+import '../../state/ui_mode_state.dart';
 import '../common/empty_view.dart';
 import '../common/progress_halo.dart';
 import '../engine/engine_screen.dart';
@@ -60,6 +61,10 @@ class LocalWebScreen extends ConsumerWidget {
         root: handle != null,
         link: link,
         onSession: onSession,
+        onNative: () async {
+          // 切回原生界面：交给 App 的模式切换，再退出这个路由。
+          await ref.read(uiModeProvider.notifier).set(UiMode.native);
+        },
       );
     }
     return _NotRunning(handle: handle);

@@ -37,12 +37,17 @@ class TurnProcess extends StatefulWidget {
     required this.buildRow,
     required this.gapBefore,
     this.settle = false,
+    this.autoCollapse = true,
   });
 
   final TurnProcessRow row;
 
   /// 这一轮刚在眼前结束:先按展开的样子出现,再收成摘要。
   final bool settle;
+
+  /// 设置 → 聊天 → 「完成后收起过程」。关掉时这一轮结束后仍然保持展开，
+  /// 不再自动收成摘要行。
+  final bool autoCollapse;
 
   /// 展开后每一行怎么画(就是列表自己的行)。
   final Widget Function(ChatRow row) buildRow;
@@ -147,6 +152,14 @@ class _TurnProcessState extends State<TurnProcess> with SingleTickerProviderStat
     if (running && !_userCollapsed && _reveal.isDismissed && !_settling) {
       _reveal.value = 1;
     }
+    // 「完成后收起过程」关掉：这一轮结束也不收，保持展开。
+    final finishedNow = !running &&
+        turnProcessKind(oldWidget.row) == TurnProcessKind.running &&
+        !widget.autoCollapse &&
+        !_userCollapsed;
+    if (finishedNow && _reveal.isDismissed) {
+      _reveal.value = 1;
+    }
   }
 
   @override
@@ -194,6 +207,24 @@ class _TurnProcessState extends State<TurnProcess> with SingleTickerProviderStat
   /// 颜色跟着状态走(出错用危险色,其余是过程行的三级色)。
   Widget _statusGlyph(BuildContext context) {
     final colors = DshColors.of(context);
+    // 思考中 → 已完成 是一次状态迁移：图形与文案都淡入淡出地换，
+    // 不要"啪"地一下从原子换成对勾。
+    return AnimatedSwitcher(
+      duration: AppMotion.of(context, AppMotion.standard),
+      switchInCurve: AppMotion.std,
+      switchOutCurve: AppMotion.std.flipped,
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: ScaleTransition(scale: Tween<double>(begin: 0.86, end: 1).animate(animation), child: child),
+      ),
+      child: KeyedSubtree(
+        key: ValueKey(turnProcessKind(widget.row)),
+        child: _glyphFor(context, colors),
+      ),
+    );
+  }
+
+  Widget _glyphFor(BuildContext context, DshColors colors) {
     return switch (turnProcessKind(widget.row)) {
       TurnProcessKind.running => AtomGlyph(color: colors.textTertiary),
       TurnProcessKind.completed => Icon(AppIcons.completed, size: 18, color: colors.textTertiary),

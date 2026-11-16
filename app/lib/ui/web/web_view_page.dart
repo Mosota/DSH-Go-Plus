@@ -48,6 +48,7 @@ class WebViewPage extends StatefulWidget {
     this.root = false,
     this.link,
     this.onSession,
+    this.onNative,
   });
 
   final Uri url;
@@ -84,6 +85,9 @@ class WebViewPage extends StatefulWidget {
   /// With [dshWeb]: the page to land on after the first load
   /// (`assets/web/dsh_web_open.js`); null opens the home page.
   final DshWebTarget? openTarget;
+
+  /// 切回原生界面。给左上角那个鲸鱼标记用：点了弹面板，而不是直接退出网页。
+  final Future<void> Function()? onNative;
 
   /// Takes the back button's seat (网页模式: the native handle), at the
   /// size of the button it replaces. A page without one seats the app's mark
@@ -1203,7 +1207,20 @@ class _WebViewPageState extends State<WebViewPage> {
         opacity: _sidebarOpen ? 0 : 1,
         duration: AppMotion.of(context, AppMotion.standard),
         curve: AppMotion.std,
-        child: BackdropGroup(child: _leading(WebChromeMetrics.seatButton, mark: true)),
+        child: BackdropGroup(
+          child: widget.leading != null
+              ? _leading(WebChromeMetrics.seatButton, mark: true)
+              : WebMarkButton(
+                  size: WebChromeMetrics.seatButton,
+                  tooltip: context.l10n.webNativeFeatures,
+                  label: context.l10n.webNativeFeatures,
+                  onTap: () => unawaited(
+                    widget.onNative == null
+                        ? _back()
+                        : showWebHandleSheet(context, onNative: widget.onNative!),
+                  ),
+                ),
+        ),
       ),
     ),
   );

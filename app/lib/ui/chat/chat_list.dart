@@ -585,7 +585,11 @@ class _ChatListState extends ConsumerState<ChatList> with SingleTickerProviderSt
   // ---------------------------------------------------------------------------
   // 行与分界
 
-  void _deriveRows(ChatState s, {required bool foldTurns, List<TurnArtifacts> artifacts = const []}) {
+  /// 设置里的「完成后收起过程」：false 时结束的那一轮保持展开。
+  bool _autoCollapse = true;
+
+  void _deriveRows(ChatState s, {required bool foldTurns, bool autoCollapse = true, List<TurnArtifacts> artifacts = const []}) {
+    _autoCollapse = autoCollapse;
     if (s.loading || !foldTurns) {
       _settling.clear();
     } else {
@@ -610,6 +614,7 @@ class _ChatListState extends ConsumerState<ChatList> with SingleTickerProviderSt
     _builtState = s;
     final inputs = (
       foldTurns,
+      autoCollapse,
       artifacts,
       s.items,
       s.approvals,
@@ -891,8 +896,10 @@ class _ChatListState extends ConsumerState<ChatList> with SingleTickerProviderSt
     _running = s.running;
     _deriveRows(
       s,
-      // The fold row is part of the chat layout: always offer it.
+      // The fold row is part of the chat layout: always offer it. Whether a
+      // finished turn stays open is the person's setting (完成后收起过程).
       foldTurns: true,
+      autoCollapse: ref.watch(settingsProvider.select((s) => s.foldCompletedTurns)),
       artifacts: ref.watch(sessionArtifactsProvider(widget.sessionId)),
     );
     final rows = _rows;
@@ -1441,6 +1448,7 @@ class _ChatListState extends ConsumerState<ChatList> with SingleTickerProviderSt
       final TurnProcessRow row => TurnProcess(
         row: row,
         settle: _settling.remove(row.key),
+        autoCollapse: _autoCollapse,
         buildRow: _rowWidget,
         gapBefore: _gapBefore,
       ),
