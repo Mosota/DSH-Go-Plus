@@ -145,6 +145,9 @@ class _WebHomeState extends ConsumerState<WebHome> {
       ref.read(currentSessionProvider.notifier).select(id);
     }
     await ref.read(uiModeProvider.notifier).set(UiMode.native);
+    // 只切模式不会把压在栈上的网页路由收掉：回到根路由，原生界面才真的出现在眼前。
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
   }
 
   Widget _handle(double size) => WebHandleButton(size: size, onNative: _toNative);

@@ -257,9 +257,6 @@ class _WebPlugins extends ConsumerStatefulWidget {
 }
 
 class _WebPluginsState extends ConsumerState<_WebPlugins> {
-  /// The island that fell back: the rows from then on.
-  IslandSpec? _fallen;
-
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -267,45 +264,14 @@ class _WebPluginsState extends ConsumerState<_WebPlugins> {
     final web = widget.web;
     final bundles = ref.watch(installedPluginsProvider.select((s) => s.value));
     final names = [for (final package in web.packages) seatBundleOf(bundles, package)?.title() ?? package];
-    final spec = web.island;
-    final island = ref.watch(seatRenderersProvider).island;
     final pages = [
       for (final item in ref.watch(chatSheetPagesProvider(widget.sessionId)))
         if (web.packages.contains(item.occupant.package)) item,
     ];
-    Widget fallback(BuildContext context) {
-      if (_fallen != spec) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) setState(() => _fallen = spec);
-        });
-      }
-      // The ways in below cover it: nothing to show in the island's place.
-      return const SizedBox.shrink();
-    }
 
-    final islandBody = spec == null || spec == _fallen || island == null
-        ? null
-        : GlassSurface(
-            key: const ValueKey('chat-plugins-island'),
-            tier: GlassTier.card,
-            borderRadius: AppShape.radiusLg,
-            // 插件画的东西可能是整块面板（甚至自带标题栏/返回入口）：裁在自己的卡片里，
-            // 不让它盖住下面的行，也限制高度，免得一张卡片占满整屏。
-            child: ClipRRect(
-              borderRadius: AppShape.radiusLg,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.sizeOf(context).height * 0.42,
-                ),
-                child: SingleChildScrollView(
-                  child: KeyedSubtree(
-                    key: ValueKey('island|${spec.key}'),
-                    child: Builder(builder: (context) => island(context, spec, web.items, fallback)),
-                  ),
-                ),
-              ),
-            ),
-          );
+    // 插件自己的面板不放进这个列表：它是一整块页面（自带标题栏/输入框），
+    // 塞进行里只会显示成一张空白卡片。这里只给「有哪些页 / 设置 / 在网页版打开」。
+    const Widget? islandBody = null;
 
     // A conversation tab of one of them: its own page in the app.
     Widget pageRow(SeatItem item) {
