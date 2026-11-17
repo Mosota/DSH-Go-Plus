@@ -110,7 +110,7 @@ class _AssistantMessageState extends ConsumerState<AssistantMessage> {
     final id = widget.sessionId;
     final seq = widget.item.seq;
     if (id == null || seq == null) return;
-    final was = ref.read(disabledMessagesProvider(id)).valueOrNull?.contains(seq) ?? false;
+    final was = ref.read(disabledMessagesProvider(id)).value?.contains(seq) ?? false;
     if (!was) {
       final ok = await showDialog<bool>(
         context: context,
@@ -206,7 +206,7 @@ class _AssistantMessageState extends ConsumerState<AssistantMessage> {
     final item = widget.item;
     final disabledSet = widget.sessionId == null
         ? null
-        : ref.watch(disabledMessagesProvider(widget.sessionId!)).valueOrNull;
+        : ref.watch(disabledMessagesProvider(widget.sessionId!)).value;
     final disabled = _isDisabled(disabledSet);
     final text = item.text.trimRight();
     final reasoning = item.reasoning.trim();

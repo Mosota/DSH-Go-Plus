@@ -66,7 +66,7 @@ Future<void> _syncToGuest(SharedPreferences prefs) async {
 }
 
 /// 开关一次并刷新该会话的 provider。
-Future<void> toggleDisabledMessage(Ref ref, String sessionId, int seq) async {
+Future<void> toggleDisabledMessage(WidgetRef ref, String sessionId, int seq) async {
   final prefs = await SharedPreferences.getInstance();
   await DisabledMessages(prefs).toggle(sessionId, seq);
   await _syncToGuest(prefs);
