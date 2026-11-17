@@ -21,6 +21,7 @@ import '../../plugins/native/message_plugin_menu.dart';
 import '../../share/share_entry.dart' show shareReply;
 import '../render/markdown_body.dart';
 import 'message_actions.dart';
+import 'message_time.dart';
 import 'stream_row.dart';
 import 'thinking_pill.dart';
 
@@ -215,6 +216,8 @@ class _AssistantMessageState extends State<AssistantMessage> {
           if (item.interrupted) const _InterruptedMark(),
           // 一轮结束时和输入条上的胶囊同一节奏展开:胶囊收回多少,这里长出
           // 多少,回答不会先被顶上去再落回来。打开对话时已结束的轮直接展开。
+          if (item.time case final sent?)
+            Align(alignment: Alignment.centerRight, child: MessageTime(time: sent)),
           ExpandReveal(
             open: actions,
             duration: AppMotion.standard,

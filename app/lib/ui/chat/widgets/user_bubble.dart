@@ -14,6 +14,7 @@ import '../media/media_format.dart' show mediaParamsLine;
 import '../mention/mention_chip.dart';
 import '../secret_mask.dart';
 import 'message_actions.dart';
+import 'message_time.dart';
 import 'quote_chip.dart';
 
 /// 用户消息:**右对齐的软气泡**,比页面深一档,像"按进去"的。
@@ -38,9 +39,13 @@ class UserBubble extends StatelessWidget {
     this.pendingIcon = AppIcons.queued,
     this.pendingActions = const [],
     this.onEdit,
+    this.time,
   });
 
   final String text;
+
+  /// 这条消息的时间（显示在气泡下方）；null = 不显示。
+  final DateTime? time;
 
   /// Images and file cards, shown right-aligned above the bubble (附件不塞进
   /// 气泡里)。
@@ -151,6 +156,8 @@ class UserBubble extends StatelessWidget {
                     child: bubble,
                   ),
                 ),
+              if (pendingLabel == null && time case final sent?)
+                MessageTime(time: sent),
               if (generate case (:final header, description: _))
                 ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: maxWidth),

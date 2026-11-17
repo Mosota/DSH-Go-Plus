@@ -183,7 +183,7 @@ class PhoneTaskSessions(
     }
 
     /** Called while PhoneBridge still holds its launch lock, before dispatch enters its pool. */
-    fun admit(attribution: PhoneCaller?): Admission {
+    fun admit(attribution: PhoneCaller?, channelTool: Boolean = false): Admission {
         val startedAt = clock()
         // Platform state reads may use Binder; bind their result to the current stop epoch.
         val readinessEpoch = synchronized(lock) { epoch }
@@ -196,7 +196,9 @@ class PhoneTaskSessions(
             // B1 attribution alone does not prove the client can deliver an exact run end.
             val caller = attribution?.takeIf { it.runLifecycle == 1 }
             val key = Key(caller?.sessionId, caller?.runId)
-            if (caller != null) {
+            // shell / device 只借通道，不参与"操控手机"：手机操控被停不该连带它们，
+            // 否则用户一按停，正在跑的 shell 也被判「本轮手机操作已停止」。
+            if (caller != null && !channelTool) {
                 if (key in endedRuns || entries[key]?.stopped == true) return Admission(null, epoch, PhoneTasks.STOPPED_MESSAGE, startedAt = startedAt)
                 if (caller.sessionId in stoppedSessions && !recoverScreenStop(key, screenReady && readinessEpoch == epoch))
                     return Admission(null, epoch, PhoneTasks.STOPPED_MESSAGE, startedAt = startedAt)

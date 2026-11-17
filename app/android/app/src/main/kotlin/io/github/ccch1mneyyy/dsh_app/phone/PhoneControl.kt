@@ -209,7 +209,9 @@ class PhoneControl private constructor(private val app: Context) : PhoneEnv, Con
     private val bridge = PhoneBridge(server, { line -> logger(line) }, { call ->
         if (call.name == DiagnosticsTool.NAME) PhoneCallWork({ call.run() })
         else if (call.name == PhoneCore.REPLAY) replayWork(call) else {
-        val admission = sessions.admit(call.caller)
+        // 通道工具（shell / device）不受「本轮手机操控已停止」影响。
+        val channelTool = call.name == PhoneToolCatalog.SHELL || call.name == PhoneToolCatalog.DEVICE
+        val admission = sessions.admit(call.caller, channelTool = channelTool)
         val nativeReplyCommit = PhoneReplyCommit()
         PhoneCallWork(
             invoke = { call.runWithCommit(nativeReplyCommit) { name, args, _ -> sessions.run(admission, name, args) } },

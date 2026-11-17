@@ -1418,6 +1418,7 @@ class _ChatListState extends ConsumerState<ChatList> with SingleTickerProviderSt
       UserRow(:final item) when dshUiReplyChip(item.text) != null => DshUiReplyChip(label: dshUiReplyChip(item.text)!),
       UserRow(:final item) => UserBubble(
         text: withoutAppNotes(item.text),
+        time: item.time,
         attachments: item.images.isEmpty && item.files.isEmpty
             ? null
             : SentAttachments.echoed(sessionId: widget.sessionId, images: item.images, files: item.files),
