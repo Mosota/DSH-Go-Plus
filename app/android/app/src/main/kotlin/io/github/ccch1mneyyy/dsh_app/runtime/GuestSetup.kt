@@ -229,6 +229,43 @@ object GuestSetup {
      * 上游只修了「枚举为空不筛」，没修「枚举到环回仍筛」。这里每次启动把它换成
      * 判断「非环回接口集合非空才筛」的版本；内容相同就跳过，运行时不匹配就重写。
      */
+    /** 读时过滤器脚本：把「禁用的消息」从模型上下文里剔除（见手册 §13）。 */
+    fun writeDisabledFilter(context: Context, rootfs: File): Boolean =
+        RuntimeOverlay.apply(
+            context, rootfs,
+            asset = "dshgo/overlay/no-disabled.mjs",
+            relative = "opt/dsh-go/direct/no-disabled.mjs",
+        ) { Log.i("DshGuest", it) }
+
+    /**
+     * 把 App 里记录的「禁用消息」写成引擎能读的 JSON：`/root/.dsh/disabled.json`
+     * （guest 路径）= `<rootfs>/root/.dsh/disabled.json`（宿主路径）。
+     * 内容形如 {"<sessionId>": [seq, ...]}；没有禁用项时写空对象。
+     */
+    fun syncDisabledMessages(context: Context, rootfs: File): Boolean = runCatching {
+        val prefs = context.getSharedPreferences("dsh_disabled_messages", Context.MODE_PRIVATE)
+        val body = buildString {
+            append('{')
+            var first = true
+            for ((session, value) in prefs.all) {
+                val seqs = (value as? String)?.split(',')?.mapNotNull { it.trim().toLongOrNull() } ?: continue
+                if (seqs.isEmpty()) continue
+                if (!first) append(',')
+                first = false
+                append('"').append(session.replace(""", "")).append("":[")
+                append(seqs.joinToString(","))
+                append(']')
+            }
+            append('}')
+        }
+        val dir = File(rootfs, "root/.dsh")
+        if (!dir.isDirectory && !dir.mkdirs()) return false
+        val target = File(dir, "disabled.json")
+        if (target.isFile && target.readText() == body) return false
+        target.writeText(body)
+        true
+    }.getOrDefault(false)
+
     fun writeDnsShim(context: Context, rootfs: File): Boolean =
         RuntimeOverlay.apply(
             context, rootfs,
