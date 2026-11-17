@@ -50,4 +50,46 @@ object RuntimeOverlay {
         log("[dsh-app] overlay applied: $relative")
         return true
     }
+
+    /**
+     * 锚点式补丁（手册 §13 铁律 1）：只在原文里出现锚点时替换一次，找不到就跳过。
+     * 绝不写入半截文件：写失败会还原备份。
+     *
+     * @param marker 补丁标记；文件里已有它说明打过，直接跳过（幂等）
+     */
+    fun patch(
+        rootfs: File,
+        relative: String,
+        anchor: String,
+        replacement: String,
+        marker: String,
+        log: (String) -> Unit,
+    ): Boolean {
+        val target = File(rootfs, relative)
+        if (!target.isFile) {
+            log("[dsh-app] patch skipped: $relative not in this runtime")
+            return false
+        }
+        val text = runCatching { target.readText() }.getOrNull() ?: run {
+            log("[dsh-app] patch skipped: $relative unreadable")
+            return false
+        }
+        if (text.contains(marker)) return false
+        if (!text.contains(anchor)) {
+            // 上游结构变了：宁可这个功能退回原样，也不能改坏引擎。
+            log("[dsh-app] patch skipped: anchor not found in $relative")
+            return false
+        }
+        val patched = text.replaceFirst(anchor, replacement)
+        val backup = File(target.parentFile, target.name + ".dsh-orig")
+        if (!backup.isFile) runCatching { target.copyTo(backup, overwrite = false) }
+        val ok = runCatching { target.writeText(patched) }.isSuccess
+        if (!ok) {
+            runCatching { if (backup.isFile) backup.copyTo(target, overwrite = true) }
+            log("[dsh-app] patch FAILED, restored: $relative")
+            return false
+        }
+        log("[dsh-app] patch applied: $relative")
+        return true
+    }
 }

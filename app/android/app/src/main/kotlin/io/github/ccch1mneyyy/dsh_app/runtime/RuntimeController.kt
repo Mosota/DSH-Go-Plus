@@ -523,6 +523,7 @@ class RuntimeController private constructor(private val app: Context) : DshProce
                 GuestSetup.writeNpmConfig(app, installer.rootfs)
                 GuestSetup.writeDisabledFilter(app, installer.rootfs)
                 GuestSetup.syncDisabledMessages(app, installer.rootfs)
+                GuestSetup.patchAgentLoop(installer.rootfs)
                 if (GuestSetup.writeDnsShim(app, installer.rootfs)) {
                     log("[dsh-app] dns shim patched: loopback-only interface list no longer drops both families", "system")
                 }

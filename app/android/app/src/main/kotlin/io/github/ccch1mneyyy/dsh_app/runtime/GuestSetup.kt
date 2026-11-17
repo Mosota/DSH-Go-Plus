@@ -221,14 +221,22 @@ object GuestSetup {
 
     /**
      * 域名解析补丁。
+      /**
+     * 让引擎在组装本轮消息时调用我们的过滤器（手册 §13 的锚点式补丁）。
      *
-     * 运行时自带的 `direct/dns.mjs` 在 `ADDRCONFIG` 分支里按 `networkInterfaces()`
-     * 过滤协议族；proroot 里这个调用只返回 `lo`（internal），于是「可用族」是空集合，
-     * A/AAAA 双双被过滤掉 → 所有外部域名 ENOTFOUND（账号登录、插件安装、web_fetch 全废）。
-     *
-     * 上游只修了「枚举为空不筛」，没修「枚举到环回仍筛」。这里每次启动把它换成
-     * 判断「非环回接口集合非空才筛」的版本；内容相同就跳过，运行时不匹配就重写。
+     * 锚点是 dsh-agent-loop 里的这一行：
+     *   `const claimed = this.inbox.claim(target, position.turn);`
+     * 命中就把它换成"过一遍过滤器"的版本；找不到（上游改了结构）就跳过，
+     * 引擎保持原样，禁用功能只是不生效，不会把引擎改坏。
      */
+    fun patchAgentLoop(rootfs: File): Boolean = RuntimeOverlay.patch(
+        rootfs,
+        relative = "opt/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js",
+        anchor = "const claimed = this.inbox.claim(target, position.turn);",
+        replacement = "const claimed = globalThis.__dshDisableFilter ? globalThis.__dshDisableFilter(this, this.inbox.claim(target, position.turn)) : this.inbox.claim(target, position.turn); /*dsh-disabled-filter*/",
+        marker = "dsh-disabled-filter",
+    ) { Log.i("DshGuest", it) }
+
     /** 读时过滤器脚本：把「禁用的消息」从模型上下文里剔除（见手册 §13）。 */
     fun writeDisabledFilter(context: Context, rootfs: File): Boolean =
         RuntimeOverlay.apply(
@@ -252,7 +260,7 @@ object GuestSetup {
                 if (seqs.isEmpty()) continue
                 if (!first) append(',')
                 first = false
-                append('"').append(session.replace(""", "")).append("":[")
+                append('"').append(session.filter { it != '"' }).append("":[")
                 append(seqs.joinToString(","))
                 append(']')
             }
@@ -266,6 +274,14 @@ object GuestSetup {
         true
     }.getOrDefault(false)
 
+   *
+     * 运行时自带的 `direct/dns.mjs` 在 `ADDRCONFIG` 分支里按 `networkInterfaces()`
+     * 过滤协议族；proroot 里这个调用只返回 `lo`（internal），于是「可用族」是空集合，
+     * A/AAAA 双双被过滤掉 → 所有外部域名 ENOTFOUND（账号登录、插件安装、web_fetch 全废）。
+     *
+     * 上游只修了「枚举为空不筛」，没修「枚举到环回仍筛」。这里每次启动把它换成
+     * 判断「非环回接口集合非空才筛」的版本；内容相同就跳过，运行时不匹配就重写。
+     */
     fun writeDnsShim(context: Context, rootfs: File): Boolean =
         RuntimeOverlay.apply(
             context, rootfs,
