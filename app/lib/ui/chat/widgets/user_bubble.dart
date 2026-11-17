@@ -156,8 +156,7 @@ class UserBubble extends StatelessWidget {
                     child: bubble,
                   ),
                 ),
-              if (pendingLabel == null && time case final sent?)
-                MessageTime(time: sent),
+              if (pendingLabel == null && time != null) MessageTime(time: time!),
               if (generate case (:final header, description: _))
                 ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: maxWidth),

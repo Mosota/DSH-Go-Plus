@@ -292,7 +292,7 @@ class _WebPluginsState extends ConsumerState<_WebPlugins> {
             // 插件画的东西可能是整块面板（甚至自带标题栏/返回入口）：裁在自己的卡片里，
             // 不让它盖住下面的行，也限制高度，免得一张卡片占满整屏。
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppShape.radiusLg),
+              borderRadius: AppShape.radiusLg,
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   maxHeight: MediaQuery.sizeOf(context).height * 0.42,
