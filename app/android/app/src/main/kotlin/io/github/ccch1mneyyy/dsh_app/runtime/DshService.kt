@@ -259,10 +259,9 @@ class DshService : Service() {
         val now = System.currentTimeMillis()
         val eco = KeepAliveGuard.globalPowerSaver(this)
         val starting = !running
-        // 省电范围包含"在后台且空闲"：App 不在前台就按不活动处理。
-        val foreground = io.github.ccch1mneyyy.dsh_app.phone.AppVisibility.visible
-        idleSince = PowerPolicy.nextIdleSince(idleSince, starting, interactive, busy, now, foreground)
-        val keep = PowerPolicy.keepCpu(eco, starting, interactive, busy, idleSince, now, foreground)
+        // 「空闲」只认任务：没有任务在跑才算空闲；后台与否不参与判定。
+        idleSince = PowerPolicy.nextIdleSince(idleSince, starting, busy, now)
+        val keep = PowerPolicy.keepCpu(eco, starting, busy, idleSince, now)
         if (keep) acquireWakeLock() else releaseWakeLock()
         keepAliveHandler.removeCallbacks(recheck)
         keepAliveHandler.postDelayed(recheck, if (eco) 60_000 else 30_000)

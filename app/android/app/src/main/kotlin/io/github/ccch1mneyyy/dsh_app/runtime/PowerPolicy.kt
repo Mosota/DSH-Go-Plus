@@ -20,17 +20,13 @@ object PowerPolicy {
     fun keepCpu(
         eco: Boolean,
         starting: Boolean,
-        interactive: Boolean,
         busy: Boolean,
         idleSince: Long,
         now: Long,
-        foreground: Boolean,
     ): Boolean {
         if (!eco) return true
         if (starting || busy) return true
-        // 省电开启时，"在后台"本身就算不活动：哪怕屏幕亮着，只要用户不在本 App
-        // 里，就不该继续替他占 CPU。
-        if (interactive && foreground) return true
+        // 「空闲」只有一个判据：没有任务在跑。屏幕亮不亮、在不在前台都不算活动。
         if (idleSince <= 0L || now < idleSince) return true
         return now - idleSince < IDLE_GRACE_MS
     }
@@ -42,12 +38,10 @@ object PowerPolicy {
     fun nextIdleSince(
         current: Long,
         starting: Boolean,
-        interactive: Boolean,
         busy: Boolean,
         now: Long,
-        foreground: Boolean,
     ): Long {
-        if (starting || busy || (interactive && foreground)) return 0L
+        if (starting || busy) return 0L
         if (current <= 0L || now < current) return now
         return current
     }
