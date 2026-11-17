@@ -146,6 +146,9 @@ object KeepAliveGuard {
             "if ! pgrep -f \"dsh web\" >/dev/null 2>&1; then " +
             "am start-foreground-service -n $SERVICE >/dev/null 2>&1; fi; " +
             "sleep $interval; done # dsh-keepalive"
+        // 同一个 App 里可能已经有一个看门狗（服务重建、开关重开都会调到这里）。
+        // 先清掉旧的再起，否则每重开一次就多一条 sleep 600 的循环。
+        runCatching { run(bg, "pkill -f dsh-keepalive 2>/dev/null", 3_000) }
         val quoted = "sh -c '$body'"
         // setsid detaches from the channel's process group; nohup is the fallback when toybox lacks it.
         val pid = parsePid(run(bg, "setsid $quoted >/dev/null 2>&1 < /dev/null & echo \$!", 8_000))

@@ -15,7 +15,7 @@ import '../../pets/pet_perch.dart';
 import '../../theme/theme.dart';
 import '../run_info.dart';
 import 'live_clock.dart';
-import 'atom_glyph.dart';
+import 'quiet_dots.dart';
 import 'whale_tail.dart';
 
 /// 生成中,输入条正上方的一颗玻璃胶囊:三颗静止的活动圆点(浓淡 = 出字速度)
@@ -246,7 +246,7 @@ class _ActivityStripState extends State<ActivityStrip> {
                             children: [
                               // 静止的三颗圆点:不驱动动画帧,也不抢文字的眼。
                               RepaintBoundary(
-                                child: AtomGlyph(color: whale, size: 18),
+                                child: QuietDots(color: whale, level: 1),
                               ),
                               const SizedBox(width: 6),
                             ],
