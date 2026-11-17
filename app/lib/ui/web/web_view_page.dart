@@ -716,6 +716,7 @@ class _WebViewPageState extends ConsumerState<WebViewPage> {
               if (widget.dshWeb && widget.onSession != null) {
                 unawaited(_injectStateBridge());
               }
+              unawaited(_quietJs(_idleProbe));
               // 刚从"后台释放"里回来：把卸载前的滚动位置/草稿写回去。
               final saved = _releasedView;
               if (saved != null) {
@@ -1075,10 +1076,55 @@ class _WebViewPageState extends ConsumerState<WebViewPage> {
     } catch (_) {}
   }
 
+  /// 页面多久没变化（毫秒）。装了 MutationObserver，滚动/按键也算活动。
+  /// 会话还在跑时页面一直在变，这时不能卸载——卸载会让前端把这一轮取消掉。
+  static const _idleProbe = r"""
+(function () {
+  if (!window.__dshAppIdleMs) {
+    window.__dshLastChange = Date.now();
+    const bump = function () { window.__dshLastChange = Date.now(); };
+    try {
+      new MutationObserver(bump).observe(document.documentElement, {
+        subtree: true, childList: true, characterData: true, attributes: true,
+      });
+    } catch (_) {}
+    document.addEventListener('scroll', bump, true);
+    document.addEventListener('keydown', bump, true);
+    document.addEventListener('pointerdown', bump, true);
+    window.__dshAppIdleMs = function () { return Date.now() - (window.__dshLastChange || 0); };
+  }
+  return 1;
+})()
+""";
+
+  Future<void> _quietJs(String js) async {
+    try {
+      await _controller.runJavaScript(js);
+    } catch (_) {}
+  }
+
+  /// 页面空闲了多久；取不到就返回 null（当作未知，照常释放）。
+  Future<int?> _idleMillis() async {
+    try {
+      final raw = await _controller.runJavaScriptReturningResult('window.__dshAppIdleMs ? window.__dshAppIdleMs() : ""');
+      final text = raw?.toString().replaceAll('"', '') ?? '';
+      return int.tryParse(text);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _releasePage() async {
     if (!mounted || _gone || _released) return;
     // 开关在性能页：关掉就完全不动网页。
     if (!ref.read(settingsProvider).releaseWebInBackground) return;
+    // 会话还在跑的时候绝不卸载：前端卸载会把这一轮取消掉。
+    final idle = await _idleMillis();
+    if (idle != null && idle < 60_000) {
+      _releaseTimer?.cancel();
+      _releaseTimer = Timer(const Duration(minutes: 5), _releasePage);
+      return;
+    }
     _releasedFrom = await _controller.currentUrl();
     if (!mounted) return;
     try {

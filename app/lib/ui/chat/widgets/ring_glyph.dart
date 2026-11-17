@@ -76,24 +76,23 @@ class _RingPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final c = size.center(Offset.zero);
     final stroke = math.max(1.2, size.shortestSide * 0.11);
+    final r = size.shortestSide / 2 - stroke / 2;
 
-    // 内环：完整、偏淡，给出"环"的形体。
+    // 环是闭合的（没有缺口），靠一段更亮的弧在环上走动来表现"在转"。
     canvas.drawCircle(
       c,
-      size.shortestSide * 0.24,
+      r,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke * 0.8
+        ..strokeWidth = stroke
         ..color = color.withValues(alpha: 0.35),
     );
-
-    // 外环：2/3 圈，缺口跟着动画走。
-    final rect = Rect.fromCircle(center: c, radius: size.shortestSide / 2 - stroke / 2);
+    final rect = Rect.fromCircle(center: c, radius: r);
     final start = (turns ?? 0) * 2 * math.pi - math.pi / 2;
     canvas.drawArc(
       rect,
       start,
-      2 * math.pi * 0.68,
+      2 * math.pi * 0.28,
       false,
       Paint()
         ..style = PaintingStyle.stroke
@@ -101,6 +100,10 @@ class _RingPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round
         ..color = color,
     );
+
+    // 中心小点：闭合环 + 走动的高亮弧，看起来是个在转的环。
+    canvas.drawCircle(c, math.max(1.0, size.shortestSide * 0.10),
+        Paint()..color = color.withValues(alpha: 0.55));
   }
 
   @override

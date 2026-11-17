@@ -100,10 +100,13 @@ class _AtomPainter extends CustomPainter {
       ..color = color.withValues(alpha: 0.75);
     final electron = Paint()..color = color;
 
+    // 整个原子一起自转（慢，约 7 秒一圈），电子再沿着各自轨道绕行：
+    // 只有电子动看起来像"三个点"，整体转动才像原子。
+    final spin = (phase ?? 0) * 0.5;
     for (var i = 0; i < _tilts.length; i++) {
       canvas.save();
       canvas.translate(center.dx, center.dy);
-      canvas.rotate(_tilts[i] * math.pi / 180);
+      canvas.rotate(spin + _tilts[i] * math.pi / 180);
       canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: rx * 2, height: ry * 2), orbit);
       if (phase case final p?) {
         // 每颗电子错开 120°，匀速绕行；椭圆上按参数取点。
