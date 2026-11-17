@@ -251,6 +251,7 @@ object GuestSetup {
     fun syncDisabledMessages(context: Context, rootfs: File): Boolean = runCatching {
         val prefs = context.getSharedPreferences("dsh_disabled_messages", Context.MODE_PRIVATE)
         val body = buildString {
+            val quote = "\""
             append('{')
             var first = true
             for ((session, value) in prefs.all) {
@@ -258,7 +259,8 @@ object GuestSetup {
                 if (seqs.isEmpty()) continue
                 if (!first) append(',')
                 first = false
-                append('"').append(session.filter { it != '"' }).append("":[")
+                val key = session.replace(quote, "")
+                append(quote).append(key).append(quote).append(':').append('[')
                 append(seqs.joinToString(","))
                 append(']')
             }
