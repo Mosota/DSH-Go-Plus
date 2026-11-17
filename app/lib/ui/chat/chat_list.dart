@@ -1214,6 +1214,7 @@ class _ChatListState extends ConsumerState<ChatList> with SingleTickerProviderSt
         : null;
     final message = AssistantMessage(
       item: item,
+      sessionId: widget.sessionId,
       showActions: showActions,
       // 过程里说给用户听的话(不是最终回答):正常正文 + 一道轻竖线。
       midProcess: false,

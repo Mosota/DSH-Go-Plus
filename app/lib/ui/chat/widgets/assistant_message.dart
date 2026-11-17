@@ -7,8 +7,10 @@ import 'dart:async';
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/l10n.dart';
+import '../../../state/disabled_messages.dart';
 import '../../../speech/read_aloud.dart';
 import '../../speech/speech_ui.dart';
 import '../../common/expand_reveal.dart';
@@ -50,6 +52,7 @@ class AssistantMessage extends StatefulWidget {
   const AssistantMessage({
     super.key,
     required this.item,
+    this.sessionId,
     this.showActions = false,
     this.onBranch,
     this.branching = false,
@@ -61,6 +64,9 @@ class AssistantMessage extends StatefulWidget {
   });
 
   final AssistantChatItem item;
+
+  /// 所属会话：禁用/恢复这条消息要记在它名下。
+  final String? sessionId;
 
   /// 是否在正文下方显示复制等操作(只给一轮里最后一条助手正文)。
   final bool showActions;
@@ -92,7 +98,35 @@ class AssistantMessage extends StatefulWidget {
   State<AssistantMessage> createState() => _AssistantMessageState();
 }
 
-class _AssistantMessageState extends State<AssistantMessage> {
+class _AssistantMessageState extends ConsumerState<AssistantMessage> {
+  /// 这条消息在给定集合里是否被禁用（只影响上下文与显示，不删存储）。
+  bool _isDisabled(Set<int>? set) {
+    final seq = widget.item.seq;
+    return seq != null && (set?.contains(seq) ?? false);
+  }
+
+  /// 禁用要二次确认；恢复直接生效。
+  Future<void> _toggleDisabled() async {
+    final id = widget.sessionId;
+    final seq = widget.item.seq;
+    if (id == null || seq == null) return;
+    final was = ref.read(disabledMessagesProvider(id)).valueOrNull?.contains(seq) ?? false;
+    if (!was) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (dialog) => AlertDialog(
+          content: Text(context.l10n.chatDisableMessageConfirm),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(dialog).pop(false), child: Text(context.l10n.commonCancel)),
+            FilledButton(onPressed: () => Navigator.of(dialog).pop(true), child: Text(context.l10n.chatDisableMessage)),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+    }
+    await toggleDisabledMessage(ref, id, seq);
+  }
+
   Widget? _body;
   String? _bodyText;
   bool? _bodyStreaming;
@@ -170,6 +204,10 @@ class _AssistantMessageState extends State<AssistantMessage> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final item = widget.item;
+    final disabledSet = widget.sessionId == null
+        ? null
+        : ref.watch(disabledMessagesProvider(widget.sessionId!)).valueOrNull;
+    final disabled = _isDisabled(disabledSet);
     final text = item.text.trimRight();
     final reasoning = item.reasoning.trim();
     final streaming = item.streaming;
@@ -232,7 +270,7 @@ class _AssistantMessageState extends State<AssistantMessage> {
                       reading: ref.watch(readAloudProvider.select((s) => s.phaseOf(widget.item.key))),
                       onRegenerate: widget.onRegenerate,
                       regenerating: widget.regenerating,
-                      onMore: () => _menu(text),
+                      onMore: () => _menu(text, disabled),
                       trailing: widget.footnote,
                     ),
                   )
@@ -242,11 +280,13 @@ class _AssistantMessageState extends State<AssistantMessage> {
       ),
     );
     // 一条回复是读屏里的一个分组,里面的段落、标题照常逐个读。
-    final message = Semantics(key: const ValueKey('reply'), container: true, explicitChildNodes: true, child: reply);
+    // 被禁用的消息照常显示，但整条压灰：一眼看出它不参与上下文。
+    final shown = disabled ? Opacity(opacity: 0.45, child: reply) : reply;
+    final message = Semantics(key: const ValueKey('reply'), container: true, explicitChildNodes: true, child: shown);
     return _waited ? _HandOff(waiting: false, child: message) : message;
   }
 
-  Future<void> _menu(String markdown) async {
+  Future<void> _menu(String markdown, bool disabled) async {
     final text = dshUiPlainText(markdown);
     final onBranch = widget.onBranch;
     final onRegenerate = widget.onRegenerate;
@@ -255,7 +295,17 @@ class _AssistantMessageState extends State<AssistantMessage> {
       context,
       text: text,
       // Plugins' items for this reply, under each plugin's name.
-      extra: nativeMessageMenuGroups(context, widget.item, text: markdown),
+      extra: [
+        ...nativeMessageMenuGroups(context, widget.item, text: markdown),
+        if (widget.item.seq != null)
+          MenuGroup(title: context.l10n.chatMessageContext, items: [
+            MenuItem(
+              icon: AppIcons.blocked,
+              label: disabled ? context.l10n.chatEnableMessage : context.l10n.chatDisableMessage,
+              onTap: _toggleDisabled,
+            ),
+          ]),
+      ],
       actions: [
         MessageAction.copy,
         MessageAction.selectText,
