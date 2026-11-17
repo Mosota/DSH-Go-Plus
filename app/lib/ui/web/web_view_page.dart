@@ -910,6 +910,7 @@ class _WebViewPageState extends State<WebViewPage> {
     final width = MediaQuery.sizeOf(context).width;
     _keyboard.report(raw, width);
     _keyboardRest?.cancel();
+    _releaseTimer?.cancel();
     _keyboardRest = Timer(WebKeyboard.rest, () {
       if (mounted && _keyboard.settle(_keyboardRaw, width)) setState(() {});
     });
@@ -1006,9 +1007,42 @@ class _WebViewPageState extends State<WebViewPage> {
     if (mounted) setState(fn);
   }
 
-  void _onHide() => _hiddenAt = DateTime.now();
+  /// 切到后台多久之后把网页视图卸载掉（about:blank），回来时重新加载。
+  /// 网页渲染进程实测两三百兆，长时间挂在后台只是占内存。
+  static const _releaseAfter = Duration(minutes: 5);
+  Timer? _releaseTimer;
+  bool _released = false;
+
+  /// 释放前记住的地址：回来时回到同一条会话，而不是首页。
+  Uri? _releasedFrom;
+
+  void _onHide() {
+    _hiddenAt = DateTime.now();
+    _releaseTimer?.cancel();
+    _releaseTimer = Timer(_releaseAfter, _releasePage);
+  }
+
+  /// 释放页面：只换成一个空白文档，WebView 还在，渲染进程的页面堆会被回收。
+  Future<void> _releasePage() async {
+    if (!mounted || _gone || _released) return;
+    _releasedFrom = await _controller.currentUrl();
+    if (!mounted) return;
+    _released = true;
+    await _controller.loadRequest(Uri.parse('about:blank'));
+  }
 
   void _onShow() {
+    _releaseTimer?.cancel();
+    _releaseTimer = null;
+    if (_released) {
+      // 后台期间页面被卸载：回来重新加载，状态由引擎那边保证。
+      _released = false;
+      final back = _releasedFrom ?? widget.url;
+      _releasedFrom = null;
+      unawaited(_controller.loadRequest(back));
+      _hiddenAt = null;
+      return;
+    }
     final after = widget.reloadAfterBackground;
     final hidden = _hiddenAt;
     _hiddenAt = null;
