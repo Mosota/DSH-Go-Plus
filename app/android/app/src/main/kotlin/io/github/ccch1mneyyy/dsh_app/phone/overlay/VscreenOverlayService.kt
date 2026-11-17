@@ -180,8 +180,6 @@ class VscreenOverlayService : Service() {
             return START_NOT_STICKY
         }
         if (root == null) show()
-        poke()
-        scheduleIdleCheck()
         resumePoll()
         return START_NOT_STICKY
     }
@@ -193,7 +191,6 @@ class VscreenOverlayService : Service() {
         showing = false
         saveWin()
         main.removeCallbacks(tick)
-        main.removeCallbacks(idleCheck)
         glide?.cancel()
         glide = null
         io.shutdownNow()
@@ -805,8 +802,6 @@ class VscreenOverlayService : Service() {
     private val tick = object : Runnable {
         override fun run() {
             if (!live || root == null || dragging || !windowVisible) return
-            // 还在取帧，说明有人在看：不算空闲。
-            lastActiveMs = android.os.SystemClock.elapsedRealtime()
             fetch()
             main.postDelayed(this, pollMs)
         }
@@ -814,34 +809,10 @@ class VscreenOverlayService : Service() {
 
     /** ⟳: one frame now, and the poll's clock restarts from here. */
     private fun refresh() {
-        poke()
         if (root == null || dragging) return
         main.removeCallbacks(tick)
         fetch()
         if (live) main.postDelayed(tick, pollMs)
-    }
-
-    /** 每 60 秒看一次：10 分钟没人用、也没有任务在跑，就自己收工（销毁虚拟显示、释放内存）。 */
-    private val idleCheck = object : Runnable {
-        override fun run() {
-            if (!live) return
-            val now = android.os.SystemClock.elapsedRealtime()
-            val busy = runCatching {
-                PhoneControl.peek()?.tasks?.snapshot()?.active == true
-            }.getOrDefault(false)
-            if (busy) lastActiveMs = now
-            if (!busy && lastActiveMs > 0 && now - lastActiveMs > IDLE_STOP_MS) {
-                android.util.Log.i(TAG, "vscreen overlay idle for 10 min; stopping")
-                stopSelf()
-                return
-            }
-            main.postDelayed(this, 60_000L)
-        }
-    }
-
-    private fun scheduleIdleCheck() {
-        main.removeCallbacks(idleCheck)
-        main.postDelayed(idleCheck, 60_000L)
     }
 
     private fun pausePoll() {
@@ -1072,15 +1043,6 @@ class VscreenOverlayService : Service() {
         /** A task started or the app changed state: resume a poll paused by 全局省电. */
         const val ACTION_WAKE = "io.github.ccch1mneyyy.dsh_app.VSCREEN_WAKE"
 
-        /** 空闲多久自动收工：虚拟屏常驻要占一块显示和一百多兆内存。 */
-        private const val IDLE_STOP_MS = 10 * 60_000L
-
-        /** 最近一次有人用它的时间（取帧、刷新、任务在跑都算）。 */
-        @Volatile private var lastActiveMs = 0L
-
-        fun poke() {
-            lastActiveMs = android.os.SystemClock.elapsedRealtime()
-        }
 
         fun wake(context: android.content.Context) {
             runCatching {
