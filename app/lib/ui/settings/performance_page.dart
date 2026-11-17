@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/l10n.dart';
 import '../../performance/performance_state.dart';
 import '../../state/keep_alive_prefs.dart';
+import '../../state/settings_state.dart';
 import '../shell/page_frame.dart';
 import '../theme/app_icons.dart';
 import 'settings_widgets.dart';
