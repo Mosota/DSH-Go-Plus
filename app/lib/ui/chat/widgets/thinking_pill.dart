@@ -18,7 +18,7 @@ import '../../common/pressable.dart';
 import '../../common/smooth_size.dart';
 import '../../common/think_glyph.dart';
 import '../../engine_settings/engine_settings_page.dart' show openSettingsPage;
-import '../../fx/orbs/thinking_orb.dart';
+import 'atom_glyph.dart';
 import '../../theme/app_icons.dart';
 import '../../theme/theme.dart';
 import '../render/markdown_body.dart';
@@ -162,7 +162,8 @@ class _ThinkingPillState extends State<ThinkingPill> {
               // 思考中是一颗慢慢变形的点阵小光球(Libraries.dev 思考光球),想完换回静止的图形
               // (和标签一样直接换,不叠着淡入淡出)。
               child: active
-                  ? ThinkingOrb(state: OrbState.breathing, size: OrbSize.px20, displaySize: 18, ink: OrbInk.tint(brand))
+                  // 思考中是原子核（电子绕行），想完换回静止的图形。
+                  ? AtomGlyph(color: brand, size: 18, animated: true)
                   : ThinkGlyph(size: 15, color: brand),
             ),
           ),

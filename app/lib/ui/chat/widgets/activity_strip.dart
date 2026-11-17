@@ -15,6 +15,7 @@ import '../../pets/pet_perch.dart';
 import '../../theme/theme.dart';
 import '../run_info.dart';
 import 'live_clock.dart';
+import 'atom_glyph.dart';
 import 'quiet_dots.dart';
 import 'whale_tail.dart';
 
@@ -246,7 +247,7 @@ class _ActivityStripState extends State<ActivityStrip> {
                             children: [
                               // 静止的三颗圆点:不驱动动画帧,也不抢文字的眼。
                               RepaintBoundary(
-                                child: QuietDots(color: whale, level: 1),
+                                child: AtomGlyph(color: whale, size: 18, animated: true),
                               ),
                               const SizedBox(width: 6),
                             ],

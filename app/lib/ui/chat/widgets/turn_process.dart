@@ -226,7 +226,7 @@ class _TurnProcessState extends State<TurnProcess> with SingleTickerProviderStat
 
   Widget _glyphFor(BuildContext context, DshColors colors) {
     return switch (turnProcessKind(widget.row)) {
-      TurnProcessKind.running => AtomGlyph(color: colors.textTertiary),
+      TurnProcessKind.running => AtomGlyph(color: colors.textTertiary, animated: true),
       TurnProcessKind.completed => Icon(AppIcons.completed, size: 18, color: colors.textTertiary),
       TurnProcessKind.error => Icon(AppIcons.error, size: 18, color: colors.danger),
       TurnProcessKind.interrupted => Icon(AppIcons.blocked, size: 18, color: colors.textTertiary),
