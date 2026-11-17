@@ -64,8 +64,8 @@ class DshService : Service() {
         // The channel may come up after this service: retry quietly once a minute.
         keepAliveHandler.postDelayed(keepAliveTick, 60_000)
         // 省电判据要用"App 是否在前台"：这里自己注册一次，不依赖手机操控是否开过。
-        runCatching {
-            (application as? Application)?.let { io.github.ccch1mneyyy.dsh_app.phone.AppVisibility.register(it) }
+        runCatching<Unit> {
+            io.github.ccch1mneyyy.dsh_app.phone.AppVisibility.register(application)
         }
     }
 

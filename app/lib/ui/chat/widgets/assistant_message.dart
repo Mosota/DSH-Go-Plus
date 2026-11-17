@@ -236,7 +236,7 @@ class _AssistantMessageState extends ConsumerState<AssistantMessage> {
     if (widget.midProcess) textBody = _ProcessTextAnchor(child: textBody);
     final reply = HoldLift(
       behavior: HitTestBehavior.opaque,
-      onLongPress: streaming || text.isEmpty ? null : () => _menu(text),
+      onLongPress: streaming || text.isEmpty ? null : () => _menu(text, disabled),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

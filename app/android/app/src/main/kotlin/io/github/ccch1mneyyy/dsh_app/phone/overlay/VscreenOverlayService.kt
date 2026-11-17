@@ -1,5 +1,6 @@
 package io.github.ccch1mneyyy.dsh_app.phone.overlay
 
+import io.github.ccch1mneyyy.dsh_app.phone.PhoneControl
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
@@ -826,7 +827,7 @@ class VscreenOverlayService : Service() {
             if (!live) return
             val now = android.os.SystemClock.elapsedRealtime()
             val busy = runCatching {
-                io.github.ccch1mneyyy.dsh_app.phone.PhoneControl.peek()?.tasks?.snapshot()?.active == true
+                PhoneControl.peek()?.tasks?.snapshot()?.active == true
             }.getOrDefault(false)
             if (busy) lastActiveMs = now
             if (!busy && lastActiveMs > 0 && now - lastActiveMs > IDLE_STOP_MS) {
