@@ -1014,7 +1014,8 @@ class _WebViewPageState extends State<WebViewPage> {
   bool _released = false;
 
   /// 释放前记住的地址：回来时回到同一条会话，而不是首页。
-  Uri? _releasedFrom;
+  /// （`currentUrl()` 给的是 String?，不是 Uri。）
+  String? _releasedFrom;
 
   void _onHide() {
     _hiddenAt = DateTime.now();
@@ -1037,9 +1038,9 @@ class _WebViewPageState extends State<WebViewPage> {
     if (_released) {
       // 后台期间页面被卸载：回来重新加载，状态由引擎那边保证。
       _released = false;
-      final back = _releasedFrom ?? widget.url;
+      final back = _releasedFrom ?? widget.url.toString();
       _releasedFrom = null;
-      unawaited(_controller.loadRequest(back));
+      unawaited(_controller.loadRequest(Uri.parse(back)));
       _hiddenAt = null;
       return;
     }
