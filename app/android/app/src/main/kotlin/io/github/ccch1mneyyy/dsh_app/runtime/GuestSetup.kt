@@ -220,8 +220,6 @@ object GuestSetup {
     }.getOrDefault(false)
 
     /**
-     * 域名解析补丁。
-      /**
      * 让引擎在组装本轮消息时调用我们的过滤器（手册 §13 的锚点式补丁）。
      *
      * 锚点是 dsh-agent-loop 里的这一行：
