@@ -5,6 +5,7 @@
 // rewritten as Chinese instructions for a ```dsh-ui fenced block in a phone chat.
 package io.github.ccch1mneyyy.dsh_app.runtime
 
+import android.util.Log
 import android.content.Context
 import android.net.ConnectivityManager
 import android.system.ErrnoException
@@ -228,14 +229,12 @@ object GuestSetup {
      * 上游只修了「枚举为空不筛」，没修「枚举到环回仍筛」。这里每次启动把它换成
      * 判断「非环回接口集合非空才筛」的版本；内容相同就跳过，运行时不匹配就重写。
      */
-    fun writeDnsShim(context: Context, rootfs: File): Boolean = runCatching {
-        val target = File(rootfs, "opt/dsh-go/direct/dns.mjs")
-        if (!target.parentFile.isDirectory) return false
-        val bytes = context.assets.open("dshgo/direct/dns.mjs").readBytes()
-        if (target.isFile && target.readBytes().contentEquals(bytes)) return false
-        target.writeBytes(bytes)
-        true
-    }.getOrDefault(false)
+    fun writeDnsShim(context: Context, rootfs: File): Boolean =
+        RuntimeOverlay.apply(
+            context, rootfs,
+            asset = "dshgo/direct/dns.mjs",
+            relative = "opt/dsh-go/direct/dns.mjs",
+        ) { Log.i("DshGuest", it) }
 
     /**
      * The web UI's phone layout lives in the runtime's frontend bundle, which the APK cannot
