@@ -6,11 +6,8 @@ import 'dart:async';
 
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/l10n.dart';
-import '../../../state/disabled_messages.dart';
 import '../../../speech/read_aloud.dart';
 import '../../speech/speech_ui.dart';
 import '../../common/expand_reveal.dart';
@@ -48,11 +45,12 @@ const _firstTextIn = Duration(milliseconds: 200);
 /// ⇪ 和菜单里的「分享」打开同一个分享面板。长按或 ⋯:同一个消息菜单(复制 /
 /// 选择文字 / 引用 / 分享 / 重新回答 / 从这里分叉)。正文因此不再直接长按选字,选字走菜单里的
 /// "选择文字",选中一段还能「引用」。
-class AssistantMessage extends ConsumerStatefulWidget {
+class AssistantMessage extends StatefulWidget {
   const AssistantMessage({
     super.key,
     required this.item,
-    this.sessionId,
+    this.disabled = false,
+    this.onToggleDisabled,
     this.showActions = false,
     this.onBranch,
     this.branching = false,
@@ -65,8 +63,12 @@ class AssistantMessage extends ConsumerStatefulWidget {
 
   final AssistantChatItem item;
 
-  /// 所属会话：禁用/恢复这条消息要记在它名下。
-  final String? sessionId;
+  /// 这条消息是否已被禁用（不进入模型上下文；界面上置灰）。
+  /// 状态由列表持有并传进来，本组件不碰 provider。
+  final bool disabled;
+
+  /// 切换禁用/恢复。null = 这条不能禁用（没有 seq）。
+  final VoidCallback? onToggleDisabled;
 
   /// 是否在正文下方显示复制等操作(只给一轮里最后一条助手正文)。
   final bool showActions;
@@ -95,38 +97,10 @@ class AssistantMessage extends ConsumerStatefulWidget {
   final bool midProcess;
 
   @override
-  ConsumerState<AssistantMessage> createState() => _AssistantMessageState();
+  State<AssistantMessage> createState() => _AssistantMessageState();
 }
 
-class _AssistantMessageState extends ConsumerState<AssistantMessage> {
-  /// 这条消息在给定集合里是否被禁用（只影响上下文与显示，不删存储）。
-  bool _isDisabled(Set<int>? set) {
-    final seq = widget.item.seq;
-    return seq != null && (set?.contains(seq) ?? false);
-  }
-
-  /// 禁用要二次确认；恢复直接生效。
-  Future<void> _toggleDisabled() async {
-    final id = widget.sessionId;
-    final seq = widget.item.seq;
-    if (id == null || seq == null) return;
-    final was = ref.read(disabledMessagesProvider(id)).value?.contains(seq) ?? false;
-    if (!was) {
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (dialog) => AlertDialog(
-          content: Text(context.l10n.chatDisableMessageConfirm),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(dialog).pop(false), child: Text(context.l10n.commonCancel)),
-            FilledButton(onPressed: () => Navigator.of(dialog).pop(true), child: Text(context.l10n.chatDisableMessage)),
-          ],
-        ),
-      );
-      if (ok != true || !mounted) return;
-    }
-    await toggleDisabledMessage(ref, id, seq);
-  }
-
+class _AssistantMessageState extends State<AssistantMessage> {
   Widget? _body;
   String? _bodyText;
   bool? _bodyStreaming;
@@ -204,10 +178,7 @@ class _AssistantMessageState extends ConsumerState<AssistantMessage> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final item = widget.item;
-    final disabledSet = widget.sessionId == null
-        ? null
-        : ref.watch(disabledMessagesProvider(widget.sessionId!)).value;
-    final disabled = _isDisabled(disabledSet);
+    final disabled = widget.disabled;
     final text = item.text.trimRight();
     final reasoning = item.reasoning.trim();
     final streaming = item.streaming;
@@ -297,12 +268,12 @@ class _AssistantMessageState extends ConsumerState<AssistantMessage> {
       // Plugins' items for this reply, under each plugin's name.
       extra: [
         ...nativeMessageMenuGroups(context, widget.item, text: markdown),
-        if (widget.item.seq != null)
+        if (widget.onToggleDisabled != null)
           MenuGroup(title: context.l10n.chatMessageContext, items: [
             MenuItem(
               icon: AppIcons.blocked,
               label: disabled ? context.l10n.chatEnableMessage : context.l10n.chatDisableMessage,
-              onTap: _toggleDisabled,
+              onTap: widget.onToggleDisabled!,
             ),
           ]),
       ],
