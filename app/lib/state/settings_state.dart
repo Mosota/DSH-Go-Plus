@@ -20,6 +20,7 @@ class AppSettings {
     this.autoApproveCommands = false,
     this.automaticDiagnostics = false,
     this.phoneStorage = false,
+    this.releaseWebInBackground = true,
     this.chatSuggestions = true,
     this.hardwareEnterSends = false,
     this.chatTextScale = 1.0,
@@ -48,6 +49,10 @@ class AppSettings {
 
   /// Mount the phone's shared storage at /sdcard in the Linux environment.
   final bool phoneStorage;
+
+  /// 后台超过 5 分钟把网页视图卸载掉（回前台重新加载并还原滚动位置）。
+  /// 单独的开关：性能页可关，关掉后网页一直挂着（占内存，切回来无感）。
+  final bool releaseWebInBackground;
 
   /// Fit the embedded DSH Web to a phone (`assets/web/`). Off shows the
   /// official layout untouched, e.g. to check a plugin that restyles it.
@@ -92,6 +97,7 @@ class AppSettings {
     bool? autoApproveCommands,
     bool? automaticDiagnostics,
     bool? phoneStorage,
+    bool? releaseWebInBackground,
     bool? chatSuggestions,
     bool? hardwareEnterSends,
     double? chatTextScale,
@@ -107,6 +113,7 @@ class AppSettings {
     autoApproveCommands: autoApproveCommands ?? this.autoApproveCommands,
     automaticDiagnostics: automaticDiagnostics ?? this.automaticDiagnostics,
     phoneStorage: phoneStorage ?? this.phoneStorage,
+    releaseWebInBackground: releaseWebInBackground ?? this.releaseWebInBackground,
     chatSuggestions: chatSuggestions ?? this.chatSuggestions,
     hardwareEnterSends: hardwareEnterSends ?? this.hardwareEnterSends,
     chatTextScale: chatTextScale ?? this.chatTextScale,
@@ -132,6 +139,7 @@ class SettingsController extends Notifier<AppSettings> {
   static const _autoApproveKey = 'auto_approve_commands';
   static const _automaticDiagnosticsKey = 'automatic_diagnostics';
   static const _phoneStorageKey = 'phone_storage';
+  static const _releaseWebKey = 'release_web_in_background';
   static const _chatSuggestionsKey = 'chat_suggestions';
   static const _hardwareEnterKey = 'hardware_enter_sends';
   static const _chatTextScaleKey = 'chat_text_scale';
@@ -188,6 +196,7 @@ class SettingsController extends Notifier<AppSettings> {
       autoApproveCommands: prefs.getBool(_autoApproveKey) ?? false,
       automaticDiagnostics: prefs.getBool(_automaticDiagnosticsKey) ?? false,
       phoneStorage: prefs.getBool(_phoneStorageKey) ?? false,
+      releaseWebInBackground: prefs.getBool(_releaseWebKey) ?? true,
       chatSuggestions: prefs.getBool(_chatSuggestionsKey) ?? true,
       hardwareEnterSends: prefs.getBool(_hardwareEnterKey) ?? false,
       chatTextScale: _knownScale(prefs.getDouble(_chatTextScaleKey)),
@@ -257,6 +266,13 @@ class SettingsController extends Notifier<AppSettings> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_phoneStorageKey, value);
     state = state.copyWith(phoneStorage: value);
+  }
+
+  /// 性能页的「后台释放网页视图」。
+  Future<void> setReleaseWebInBackground(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_releaseWebKey, value);
+    state = state.copyWith(releaseWebInBackground: value);
   }
 
   static double _knownScale(double? v) => chatTextScales.any((s) => s.$1 == v) ? v! : 1.0;

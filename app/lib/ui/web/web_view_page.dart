@@ -4,12 +4,14 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../l10n/l10n.dart';
+import '../../state/settings_state.dart';
 import '../common/empty_view.dart';
 import '../common/expand_reveal.dart';
 import '../shell/page_frame.dart';
@@ -30,7 +32,7 @@ import 'web_view_guard.dart';
 /// as it scrolls up. The page's content stays inside the safe area: injected
 /// CSS for DSH Web and the top / bottom of other pages, the WebView's own
 /// bounds for their sides (fixed-position elements ignore body padding).
-class WebViewPage extends StatefulWidget {
+class WebViewPage extends ConsumerStatefulWidget {
   const WebViewPage({
     super.key,
     required this.url,
@@ -111,7 +113,7 @@ class WebViewPage extends StatefulWidget {
   bool get _adapt => false;
 
   @override
-  State<WebViewPage> createState() => _WebViewPageState();
+  ConsumerState<WebViewPage> createState() => _WebViewPageState();
 }
 
 /// Frame width from which DSH Web keeps its own layout: the official client
@@ -629,7 +631,7 @@ class WebKeyboard {
   }
 }
 
-class _WebViewPageState extends State<WebViewPage> {
+class _WebViewPageState extends ConsumerState<WebViewPage> {
   late WebViewController _controller;
   late final AppLifecycleListener _lifecycle;
   late final WebViewGuard _guard = WebViewGuard(onGone: _onRendererGone);
@@ -713,6 +715,12 @@ class _WebViewPageState extends State<WebViewPage> {
               if (widget.dshWeb) unawaited(_injectSidebarBridge());
               if (widget.dshWeb && widget.onSession != null) {
                 unawaited(_injectStateBridge());
+              }
+              // 刚从"后台释放"里回来：把卸载前的滚动位置/草稿写回去。
+              final saved = _releasedView;
+              if (saved != null) {
+                _releasedView = null;
+                unawaited(_restoreViewState(saved));
               }
             },
             onWebResourceError: (error) {
@@ -1017,6 +1025,9 @@ class _WebViewPageState extends State<WebViewPage> {
   /// （`currentUrl()` 给的是 String?，不是 Uri。）
   String? _releasedFrom;
 
+  /// 卸载前抓到的滚动位置/草稿（JSON 字符串），重载完成后写回。
+  String? _releasedView;
+
   void _onHide() {
     _hiddenAt = DateTime.now();
     _releaseTimer?.cancel();
@@ -1024,9 +1035,58 @@ class _WebViewPageState extends State<WebViewPage> {
   }
 
   /// 释放页面：只换成一个空白文档，WebView 还在，渲染进程的页面堆会被回收。
+  /// 卸载前记下"看到哪、写了什么"，重载后写回去（只还原，不假装没卸载过）。
+  static const _saveView = r"""
+(function () {
+  let best = null, top = 0;
+  for (const el of document.querySelectorAll('*')) {
+    if (el.scrollTop > top) { top = el.scrollTop; best = el; }
+  }
+  const area = document.querySelector('textarea');
+  return JSON.stringify({ top: top, draft: area ? area.value : '' });
+})()
+""";
+
+  static const _restoreView = r"""
+(function (saved) {
+  try {
+    const s = JSON.parse(saved || '{}');
+    if (s.top) {
+      let best = null, top = 0;
+      for (const el of document.querySelectorAll('*')) {
+        if (el.scrollTop > top) { top = el.scrollTop; best = el; }
+      }
+      if (best) best.scrollTop = s.top;
+    }
+    const area = document.querySelector('textarea');
+    if (area && s.draft) {
+      area.value = s.draft;
+      area.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  } catch (_) {}
+})(%s)
+""";
+
+  /// 重载完成后把 [saved] 里的滚动位置/草稿写回页面。
+  Future<void> _restoreViewState(String saved) async {
+    try {
+      final arg = jsonEncode(saved);
+      await _controller.runJavaScript(_restoreView.replaceFirst('%s', arg));
+    } catch (_) {}
+  }
+
   Future<void> _releasePage() async {
     if (!mounted || _gone || _released) return;
+    // 开关在性能页：关掉就完全不动网页。
+    if (!ref.read(settingsProvider).releaseWebInBackground) return;
     _releasedFrom = await _controller.currentUrl();
+    if (!mounted) return;
+    try {
+      final saved = await _controller.runJavaScriptReturningResult(_saveView);
+      _releasedView = saved?.toString();
+    } catch (_) {
+      _releasedView = null;
+    }
     if (!mounted) return;
     _released = true;
     await _controller.loadRequest(Uri.parse('about:blank'));

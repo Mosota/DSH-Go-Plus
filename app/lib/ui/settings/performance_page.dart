@@ -89,6 +89,13 @@ class PerformancePage extends ConsumerWidget {
           title: '省电',
           children: [
             SettingsSwitchTile(
+              key: const ValueKey('release-web-in-background'),
+              title: '后台释放网页视图',
+              subtitle: '切到后台 5 分钟后把网页卸载掉（省 200MB 以上）；回到前台自动重新加载，并还原滚动位置。关掉则网页一直挂着，切回来无感但更占内存',
+              value: ref.watch(settingsProvider.select((s) => s.releaseWebInBackground)),
+              onChanged: (v) => unawaited(ref.read(settingsProvider.notifier).setReleaseWebInBackground(v)),
+            ),
+            SettingsSwitchTile(
               key: const ValueKey('global-power-saver'),
               title: '全局省电',
               subtitle: '只放 CPU、不冻结引擎：熄屏且无任务时，60 秒后释放唤醒锁交给系统休眠；同时停预览、日志静默、守护 10 分钟一探、状态 15 秒一刷。亮屏或有任务立刻恢复正常',
