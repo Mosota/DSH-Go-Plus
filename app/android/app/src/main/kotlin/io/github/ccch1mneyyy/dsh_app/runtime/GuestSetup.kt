@@ -220,67 +220,12 @@ object GuestSetup {
     }.getOrDefault(false)
 
     /**
-     * 让引擎在组装本轮消息时调用我们的过滤器（手册 §13 的锚点式补丁）。
+     * 域名解析补丁（见维护手册 §13）。
      *
-     * 锚点是 dsh-agent-loop 里的这一行：
-     *   `const claimed = this.inbox.claim(target, position.turn);`
-     * 命中就把它换成"过一遍过滤器"的版本；找不到（上游改了结构）就跳过，
-     * 引擎保持原样，禁用功能只是不生效，不会把引擎改坏。
-     */
-    fun patchAgentLoop(rootfs: File): Boolean = RuntimeOverlay.patch(
-        rootfs,
-        relative = "opt/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js",
-        anchor = "const claimed = this.inbox.claim(target, position.turn);",
-        replacement = "const claimed = globalThis.__dshDisableFilter ? globalThis.__dshDisableFilter(this, this.inbox.claim(target, position.turn)) : this.inbox.claim(target, position.turn); /*dsh-disabled-filter*/",
-        marker = "dsh-disabled-filter",
-    ) { Log.i("DshGuest", it) }
-
-    /** 读时过滤器脚本：把「禁用的消息」从模型上下文里剔除（见手册 §13）。 */
-    fun writeDisabledFilter(context: Context, rootfs: File): Boolean =
-        RuntimeOverlay.apply(
-            context, rootfs,
-            asset = "dshgo/overlay/no-disabled.mjs",
-            relative = "opt/dsh-go/direct/no-disabled.mjs",
-        ) { Log.i("DshGuest", it) }
-
-    /**
-     * 把 App 里记录的「禁用消息」写成引擎能读的 JSON：`/root/.dsh/disabled.json`
-     * （guest 路径）= `<rootfs>/root/.dsh/disabled.json`（宿主路径）。
-     * 内容形如 {"<sessionId>": [seq, ...]}；没有禁用项时写空对象。
-     */
-    fun syncDisabledMessages(context: Context, rootfs: File): Boolean = runCatching {
-        val prefs = context.getSharedPreferences("dsh_disabled_messages", Context.MODE_PRIVATE)
-        val body = buildString {
-            val quote = "\""
-            append('{')
-            var first = true
-            for ((session, value) in prefs.all) {
-                val seqs = (value as? String)?.split(',')?.mapNotNull { it.trim().toLongOrNull() } ?: continue
-                if (seqs.isEmpty()) continue
-                if (!first) append(',')
-                first = false
-                val key = session.replace(quote, "")
-                append(quote).append(key).append(quote).append(':').append('[')
-                append(seqs.joinToString(","))
-                append(']')
-            }
-            append('}')
-        }
-        val dir = File(rootfs, "root/.dsh")
-        if (!dir.isDirectory && !dir.mkdirs()) return false
-        val target = File(dir, "disabled.json")
-        if (target.isFile && target.readText() == body) return false
-        target.writeText(body)
-        true
-    }.getOrDefault(false)
-
-   *
-     * 运行时自带的 `direct/dns.mjs` 在 `ADDRCONFIG` 分支里按 `networkInterfaces()`
-     * 过滤协议族；proroot 里这个调用只返回 `lo`（internal），于是「可用族」是空集合，
-     * A/AAAA 双双被过滤掉 → 所有外部域名 ENOTFOUND（账号登录、插件安装、web_fetch 全废）。
-     *
-     * 上游只修了「枚举为空不筛」，没修「枚举到环回仍筛」。这里每次启动把它换成
-     * 判断「非环回接口集合非空才筛」的版本；内容相同就跳过，运行时不匹配就重写。
+     * 运行时的 `direct/dns.mjs` 在 ADDRCONFIG 分支里按 `networkInterfaces()` 过滤协议族；
+     * proroot 里只枚举到 `lo`，于是可用族是空集合，A/AAAA 双双被过滤掉，所有外部域名
+     * 都报 ENOTFOUND（账号登录、插件安装、web_fetch 全废）。这里换成"非环回接口集合非空
+     * 才过滤"的版本；内容相同就跳过，写失败会还原备份。
      */
     fun writeDnsShim(context: Context, rootfs: File): Boolean =
         RuntimeOverlay.apply(
@@ -289,73 +234,5 @@ object GuestSetup {
             relative = "opt/dsh-go/direct/dns.mjs",
         ) { Log.i("DshGuest", it) }
 
-    /**
-     * The web UI's phone layout lives in the runtime's frontend bundle, which the APK cannot
-     * rebuild here. Its selectors age out whenever that bundle is rebuilt, so the copy shipped
-     * as an asset is written over it before every start.
-     */
-    fun writeWebMobileCss(context: Context, rootfs: File): Boolean = runCatching {
-        val bytes = context.assets.open("web/dsh_mobile.css").readBytes()
-        fun found(dir: File): File? {
-            if (!dir.isDirectory) return null
-            if (dir.name == "dist" && dir.parentFile?.name == "dsh-web-frontend") return dir
-            return null
-        }
-        val candidates = mutableListOf<File>()
-        for (base in listOf("opt/dsh/lib/node_modules", "usr/local/lib/node_modules", "opt/node/lib/node_modules")) {
-            val root = File(rootfs, base)
-            File(root, "@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-web-frontend/dist").let { if (it.isDirectory) candidates.add(it) }
-            File(root, "@deepseek-ai/dsh-web-frontend/dist").let { if (it.isDirectory) candidates.add(it) }
-            // A shallow search covers layouts we did not name (pnpm stores, other prefixes).
-            runCatching {
-                root.walkTopDown().maxDepth(6).firstOrNull { it.name == "dsh-web-frontend" }?.let { f ->
-                    File(f, "dist").takeIf { it.isDirectory }?.let { candidates.add(it) }
-                }
-            }
-        }
-        val dist = candidates.firstOrNull() ?: return false
-        val target = File(dist, "mobile.css")
-        if (target.isFile && target.length() == bytes.size.toLong() && target.readBytes().contentEquals(bytes)) return false
-        target.writeBytes(bytes)
-        true
-    }.getOrDefault(false)
 
-    fun writeResolvConf(rootfs: File, servers: List<String>): DnsConfigReport =
-        writeResolvConf(rootfs, servers, Os::rename)
-
-    internal fun writeResolvConf(
-        rootfs: File,
-        servers: List<String>,
-        replace: (String, String) -> Unit,
-    ): DnsConfigReport {
-        val requested = servers.take(3).toList()
-        val text = buildString {
-            appendLine("# written by dsh-app from the device's active network")
-            servers.forEach { appendLine("nameserver $it") }
-            appendLine("options ${DnsConfigReport.OPTIONS}")
-        }
-        var stage = DnsConfigStage.PREPARE
-        try {
-            val etc = File(rootfs, "etc")
-            if (!etc.isDirectory && !etc.mkdirs() && !etc.isDirectory) throw IOException("Cannot prepare resolver directory")
-            val target = File(etc, "resolv.conf")
-            stage = DnsConfigStage.READ
-            if (target.isFile && target.readText() == text) return DnsConfigReport(DnsConfigOutcome.UNCHANGED, requested)
-            // Swapped in whole while DSH runs; also replaces a symlink (e.g. to systemd-resolved) with a plain file.
-            val temp = File(etc, ".resolv.conf.dsh-tmp")
-            stage = DnsConfigStage.WRITE
-            temp.writeText(text)
-            stage = DnsConfigStage.REPLACE
-            replace(temp.path, target.path)
-            return DnsConfigReport(DnsConfigOutcome.WRITTEN, requested)
-        } catch (e: Exception) {
-            val error = when (e) {
-                is ErrnoException -> DnsConfigError.NATIVE
-                is SecurityException -> DnsConfigError.SECURITY
-                is IOException -> DnsConfigError.IO
-                else -> DnsConfigError.OTHER
-            }
-            return DnsConfigReport(DnsConfigOutcome.FAILED, requested, stage, error, (e as? ErrnoException)?.errno)
-        }
-    }
 }

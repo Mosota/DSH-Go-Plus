@@ -50,8 +50,6 @@ class AssistantMessage extends StatefulWidget {
   const AssistantMessage({
     super.key,
     required this.item,
-    this.disabled = false,
-    this.onToggleDisabled,
     this.showActions = false,
     this.onBranch,
     this.branching = false,
@@ -63,13 +61,6 @@ class AssistantMessage extends StatefulWidget {
   });
 
   final AssistantChatItem item;
-
-  /// 这条消息是否已被禁用（不进入模型上下文；界面上置灰）。
-  /// 状态由列表持有并传进来，本组件不碰 provider。
-  final bool disabled;
-
-  /// 切换禁用/恢复。null = 这条不能禁用（没有 seq）。
-  final VoidCallback? onToggleDisabled;
 
   /// 是否在正文下方显示复制等操作(只给一轮里最后一条助手正文)。
   final bool showActions;
@@ -179,7 +170,6 @@ class _AssistantMessageState extends State<AssistantMessage> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final item = widget.item;
-    final disabled = widget.disabled;
     final text = item.text.trimRight();
     final reasoning = item.reasoning.trim();
     final streaming = item.streaming;
@@ -208,7 +198,7 @@ class _AssistantMessageState extends State<AssistantMessage> {
     if (widget.midProcess) textBody = _ProcessTextAnchor(child: textBody);
     final reply = HoldLift(
       behavior: HitTestBehavior.opaque,
-      onLongPress: streaming || text.isEmpty ? null : () => _menu(text, disabled),
+      onLongPress: streaming || text.isEmpty ? null : () => _menu(text),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -242,7 +232,7 @@ class _AssistantMessageState extends State<AssistantMessage> {
                       reading: ref.watch(readAloudProvider.select((s) => s.phaseOf(widget.item.key))),
                       onRegenerate: widget.onRegenerate,
                       regenerating: widget.regenerating,
-                      onMore: () => _menu(text, disabled),
+                      onMore: () => _menu(text),
                       trailing: widget.footnote,
                     ),
                   )
@@ -252,13 +242,11 @@ class _AssistantMessageState extends State<AssistantMessage> {
       ),
     );
     // 一条回复是读屏里的一个分组,里面的段落、标题照常逐个读。
-    // 被禁用的消息照常显示，但整条压灰：一眼看出它不参与上下文。
-    final shown = disabled ? Opacity(opacity: 0.45, child: reply) : reply;
-    final message = Semantics(key: const ValueKey('reply'), container: true, explicitChildNodes: true, child: shown);
+    final message = Semantics(key: const ValueKey('reply'), container: true, explicitChildNodes: true, child: reply);
     return _waited ? _HandOff(waiting: false, child: message) : message;
   }
 
-  Future<void> _menu(String markdown, bool disabled) async {
+  Future<void> _menu(String markdown) async {
     final text = dshUiPlainText(markdown);
     final onBranch = widget.onBranch;
     final onRegenerate = widget.onRegenerate;
@@ -267,17 +255,7 @@ class _AssistantMessageState extends State<AssistantMessage> {
       context,
       text: text,
       // Plugins' items for this reply, under each plugin's name.
-      extra: [
-        ...nativeMessageMenuGroups(context, widget.item, text: markdown),
-        if (widget.onToggleDisabled != null)
-          MenuGroup(title: context.l10n.chatMessageContext, items: [
-            MenuItem(
-              icon: AppIcons.blocked,
-              label: disabled ? context.l10n.chatEnableMessage : context.l10n.chatDisableMessage,
-              onTap: widget.onToggleDisabled!,
-            ),
-          ]),
-      ],
+      extra: nativeMessageMenuGroups(context, widget.item, text: markdown),
       actions: [
         MessageAction.copy,
         MessageAction.selectText,

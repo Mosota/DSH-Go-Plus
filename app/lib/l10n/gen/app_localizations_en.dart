@@ -4174,18 +4174,6 @@ class L10nEn extends L10n {
   String get chatQuote => 'Quote';
 
   @override
-  String get chatMessageContext => 'Context';
-
-  @override
-  String get chatDisableMessageConfirm => 'A disabled message stays on screen, greyed out, and is left out of the model context.';
-
-  @override
-  String get chatEnableMessage => 'Re-enable this message';
-
-  @override
-  String get chatDisableMessage => 'Disable this message';
-
-  @override
   String get chatOpenFolder => 'Open folder';
 
   @override

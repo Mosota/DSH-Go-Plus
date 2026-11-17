@@ -7340,30 +7340,6 @@ abstract class L10n {
   /// **'引用'**
   String get chatQuote;
 
-  /// No description provided for @chatMessageContext.
-  ///
-  /// In zh, this message translates to:
-  /// **'上下文'**
-  String get chatMessageContext;
-
-  /// No description provided for @chatDisableMessageConfirm.
-  ///
-  /// In zh, this message translates to:
-  /// **'禁用后这条消息不再进入上下文，只在本机变灰。'**
-  String get chatDisableMessageConfirm;
-
-  /// No description provided for @chatEnableMessage.
-  ///
-  /// In zh, this message translates to:
-  /// **'恢复这条消息'**
-  String get chatEnableMessage;
-
-  /// No description provided for @chatDisableMessage.
-  ///
-  /// In zh, this message translates to:
-  /// **'禁用这条消息'**
-  String get chatDisableMessage;
-
   /// No description provided for @chatOpenFolder.
   ///
   /// In zh, this message translates to:

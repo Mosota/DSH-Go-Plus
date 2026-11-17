@@ -521,9 +521,6 @@ class RuntimeController private constructor(private val app: Context) : DshProce
                 }
                 noteDns(GuestSetup.writeResolvConf(app, installer.rootfs), DnsConfigSource.START)
                 GuestSetup.writeNpmConfig(app, installer.rootfs)
-                GuestSetup.writeDisabledFilter(app, installer.rootfs)
-                GuestSetup.syncDisabledMessages(app, installer.rootfs)
-                GuestSetup.patchAgentLoop(installer.rootfs)
                 if (GuestSetup.writeDnsShim(app, installer.rootfs)) {
                     log("[dsh-app] dns shim patched: loopback-only interface list no longer drops both families", "system")
                 }
@@ -569,10 +566,6 @@ class RuntimeController private constructor(private val app: Context) : DshProce
                 // 注意：我们用 proroot（libproroot.so）做路径翻译，它本身不隔离网络。
                 runCatching {
                     var existing = env["NODE_OPTIONS"] ?: pendingEnv["NODE_OPTIONS"].orEmpty()
-                    // 读时过滤器：把「禁用的消息」从上下文里剔除（不改会话存储）。
-                    if (!existing.contains("no-disabled.mjs")) {
-                        existing = (existing + " --import=/opt/dsh-go/direct/no-disabled.mjs").trim()
-                    }
                     if (!existing.contains("--dns-result-order")) {
                         env["NODE_OPTIONS"] = (existing + " --dns-result-order=ipv4first").trim()
                         if (pendingEnv["NODE_OPTIONS"] == null) log("[dsh-app] node dns order: ipv4first", "system")

@@ -28,7 +28,6 @@ import '../../state/hosts_state.dart' show HostKind, activeHostProvider;
 import '../../state/regenerate.dart';
 import '../../state/sessions_state.dart';
 import '../../state/settings_state.dart';
-import '../../state/disabled_messages.dart';
 import '../common/app_dialog.dart';
 import '../common/bleed.dart';
 import '../common/ui_trace.dart';
@@ -1213,11 +1212,8 @@ class _ChatListState extends ConsumerState<ChatList> with SingleTickerProviderSt
     final prompt = branchable && widget.onResend != null
         ? regenerablePrompt(ref.read(chatProvider(widget.sessionId)), item)
         : null;
-    final disabledSeqs = ref.watch(disabledMessagesProvider(widget.sessionId)).asData?.value;
     final message = AssistantMessage(
       item: item,
-      disabled: item.seq != null && (disabledSeqs?.contains(item.seq) ?? false),
-      onToggleDisabled: item.seq == null ? null : () => _toggleDisabledMessage(item.seq!),
       showActions: showActions,
       // 过程里说给用户听的话(不是最终回答):正常正文 + 一道轻竖线。
       midProcess: false,
@@ -1256,25 +1252,6 @@ class _ChatListState extends ConsumerState<ChatList> with SingleTickerProviderSt
       onTap: () => showTrajectorySheet(context, sessionId: widget.sessionId, turn: trace.turn),
     ),
   );
-
-  /// 禁用/恢复单条消息：禁用要二次确认，恢复直接生效。
-  Future<void> _toggleDisabledMessage(int seq) async {
-    final was = ref.read(disabledMessagesProvider(widget.sessionId)).asData?.value?.contains(seq) ?? false;
-    if (!was) {
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (dialog) => AlertDialog(
-          content: Text(context.l10n.chatDisableMessageConfirm),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(dialog).pop(false), child: Text(context.l10n.commonCancel)),
-            FilledButton(onPressed: () => Navigator.of(dialog).pop(true), child: Text(context.l10n.chatDisableMessage)),
-          ],
-        ),
-      );
-      if (ok != true) return;
-    }
-    await toggleDisabledMessage(ref, widget.sessionId, seq);
-  }
 
   Future<void> _branch(AssistantChatItem item) async {
     if (_forkingId != null || _regeneratingId != null) return;

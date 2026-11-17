@@ -3960,18 +3960,6 @@ class L10nZh extends L10n {
   String get chatQuote => '引用';
 
   @override
-  String get chatMessageContext => '上下文';
-
-  @override
-  String get chatDisableMessageConfirm => '禁用后这条消息不再进入上下文，只在本机变灰。';
-
-  @override
-  String get chatEnableMessage => '恢复这条消息';
-
-  @override
-  String get chatDisableMessage => '禁用这条消息';
-
-  @override
   String get chatOpenFolder => '打开文件夹';
 
   @override
