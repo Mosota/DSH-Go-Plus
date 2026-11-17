@@ -15,7 +15,7 @@ import '../../pets/pet_perch.dart';
 import '../../theme/theme.dart';
 import '../run_info.dart';
 import 'live_clock.dart';
-import 'spark_glyph.dart';
+import 'ring_glyph.dart';
 import 'whale_tail.dart';
 
 /// 生成中,输入条正上方的一颗玻璃胶囊:三颗静止的活动圆点(浓淡 = 出字速度)
@@ -246,7 +246,7 @@ class _ActivityStripState extends State<ActivityStrip> {
                             children: [
                               // 静止的三颗圆点:不驱动动画帧,也不抢文字的眼。
                               RepaintBoundary(
-                                child: SparkGlyph(color: whale, size: 18, animated: true),
+                                child: RingGlyph(color: whale, size: 18, animated: true),
                               ),
                               const SizedBox(width: 6),
                             ],
