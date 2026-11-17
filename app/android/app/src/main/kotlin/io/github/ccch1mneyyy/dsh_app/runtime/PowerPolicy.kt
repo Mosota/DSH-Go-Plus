@@ -24,9 +24,13 @@ object PowerPolicy {
         busy: Boolean,
         idleSince: Long,
         now: Long,
+        foreground: Boolean,
     ): Boolean {
         if (!eco) return true
-        if (starting || interactive || busy) return true
+        if (starting || busy) return true
+        // 省电开启时，"在后台"本身就算不活动：哪怕屏幕亮着，只要用户不在本 App
+        // 里，就不该继续替他占 CPU。
+        if (interactive && foreground) return true
         if (idleSince <= 0L || now < idleSince) return true
         return now - idleSince < IDLE_GRACE_MS
     }
@@ -41,8 +45,9 @@ object PowerPolicy {
         interactive: Boolean,
         busy: Boolean,
         now: Long,
+        foreground: Boolean,
     ): Long {
-        if (starting || interactive || busy) return 0L
+        if (starting || busy || (interactive && foreground)) return 0L
         if (current <= 0L || now < current) return now
         return current
     }

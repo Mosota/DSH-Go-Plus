@@ -63,6 +63,10 @@ class DshService : Service() {
         KeepAliveGuard.startAsync(this, isRunning)
         // The channel may come up after this service: retry quietly once a minute.
         keepAliveHandler.postDelayed(keepAliveTick, 60_000)
+        // 省电判据要用"App 是否在前台"：这里自己注册一次，不依赖手机操控是否开过。
+        runCatching {
+            (application as? Application)?.let { io.github.ccch1mneyyy.dsh_app.phone.AppVisibility.register(it) }
+        }
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -221,6 +225,9 @@ class DshService : Service() {
         controller.note(line)
     }
 
+    /** 省电开关或前台状态变了，别等下一次事件才放锁。 */
+    private val recheck = Runnable { settleWakeLock() }
+
     /** 屏幕是否亮着：省电模式下这是"该不该占 CPU"的关键输入。 */
     @Volatile private var interactive = true
 
@@ -252,10 +259,13 @@ class DshService : Service() {
         val now = System.currentTimeMillis()
         val eco = KeepAliveGuard.globalPowerSaver(this)
         val starting = !running
-        idleSince = PowerPolicy.nextIdleSince(idleSince, starting, interactive, busy, now)
-        val keep = PowerPolicy.keepCpu(eco, starting, interactive, busy, idleSince, now)
+        // 省电范围包含"在后台且空闲"：App 不在前台就按不活动处理。
+        val foreground = io.github.ccch1mneyyy.dsh_app.phone.AppVisibility.visible
+        idleSince = PowerPolicy.nextIdleSince(idleSince, starting, interactive, busy, now, foreground)
+        val keep = PowerPolicy.keepCpu(eco, starting, interactive, busy, idleSince, now, foreground)
         if (keep) acquireWakeLock() else releaseWakeLock()
-        if (!keep) keepAliveHandler.postDelayed({ settleWakeLock() }, 30_000)
+        keepAliveHandler.removeCallbacks(recheck)
+        keepAliveHandler.postDelayed(recheck, if (eco) 60_000 else 30_000)
     }
 
     private fun acquireWakeLock() {
