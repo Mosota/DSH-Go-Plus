@@ -13291,10 +13291,10 @@ index 00000000..24621a18
 +}
 diff --git a/app/lib/ui/phone/privileged_channel_page.dart b/app/lib/ui/phone/privileged_channel_page.dart
 new file mode 100644
-index 00000000..2368b072
+index 00000000..7620286a
 --- /dev/null
 +++ b/app/lib/ui/phone/privileged_channel_page.dart
-@@ -0,0 +1,420 @@
+@@ -0,0 +1,427 @@
 +import 'dart:async';
 +
 +import 'package:flutter/material.dart';
@@ -13400,13 +13400,20 @@ index 00000000..2368b072
 +    await _run(() => _phone.adbPair(entered.$1, port: entered.$2), done: l10n.phoneDndPairedConnect);
 +  }
 +
++  /// 五个通道全列（Shizuku / Sui / root / 自连 ADB），当前使用的打勾。
 +  List<Widget> _channelChoices(PhoneBackgroundStatus bg) => [
-+    for (final mode in PhoneBackgroundMode.values)
-+      if (mode != PhoneBackgroundMode.off)
++    for (final mode in PhonePrivilegedMode.values)
++      if (mode != PhonePrivilegedMode.off)
 +        ListPageRow(
-+          leading: Icon(bg.mode == mode ? AppIcons.radioOn : AppIcons.radioOff),
-+          title: mode == PhoneBackgroundMode.shizuku ? 'Shizuku' : (mode == PhoneBackgroundMode.adb ? '自连 ADB' : mode.name),
-+          onTap: _busy ? null : () => unawaited(_run(() => _phone.setBackgroundMode(mode))),
++          key: ValueKey('channel-${mode.name}'),
++          leading: Icon(bg.effectiveMode == mode ? AppIcons.radioOn : AppIcons.radioOff),
++          title: switch (mode) {
++            PhonePrivilegedMode.shizuku => 'Shizuku',
++            PhonePrivilegedMode.sui => 'Sui',
++            PhonePrivilegedMode.root => 'root',
++            _ => '自连 ADB',
++          },
++          onTap: _busy ? null : () => unawaited(_run(() => _phone.setPrivilegedMode(mode))),
 +        ),
 +  ];
 +
