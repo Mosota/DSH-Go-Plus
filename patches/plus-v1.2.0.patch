@@ -13002,10 +13002,10 @@ index 00000000..24621a18
 +}
 diff --git a/app/lib/ui/phone/privileged_channel_page.dart b/app/lib/ui/phone/privileged_channel_page.dart
 new file mode 100644
-index 00000000..ba192315
+index 00000000..39a424d3
 --- /dev/null
 +++ b/app/lib/ui/phone/privileged_channel_page.dart
-@@ -0,0 +1,388 @@
+@@ -0,0 +1,403 @@
 +import 'dart:async';
 +
 +import 'package:flutter/material.dart';
@@ -13143,6 +13143,21 @@ index 00000000..ba192315
 +                  onPressed: _busy ? null : () => _setMode(PhoneBackgroundMode.off),
 +                  child: Text(l10n.commonClose),
 +                ),
++              ),
++            ],
++          ),
++        if (bg.mode != PhoneBackgroundMode.off && !bg.ready)
++          ListPageCard(
++            margin: _groupMargin,
++            children: [
++              ListPageRow(
++                icon: AppIcons.refresh,
++                title: '重新检查此通道',
++                subtitle: '重新绑定一次，通常 1–15 秒出结果；卡住会显示失败阶段',
++                subtitleMaxLines: 2,
++                onTap: _busy
++                    ? null
++                    : () => unawaited(_run(() => _phone.setBackgroundMode(bg.mode), done: '通道已重新检查')),
 +              ),
 +            ],
 +          ),
@@ -14090,7 +14105,7 @@ index f48b78e3..2c84a81d 100644
          ),
          SettingsSection(
 diff --git a/app/lib/ui/shell/page_frame.dart b/app/lib/ui/shell/page_frame.dart
-index 08e7db05..0b6bfe4b 100644
+index 08e7db05..e51c11c1 100644
 --- a/app/lib/ui/shell/page_frame.dart
 +++ b/app/lib/ui/shell/page_frame.dart
 @@ -176,14 +176,18 @@ class _AppPageState extends State<AppPage> {
@@ -14114,7 +14129,29 @@ index 08e7db05..0b6bfe4b 100644
                  slivers: [
                    SliverToBoxAdapter(child: SizedBox(height: top)),
                    if (header != null)
-@@ -274,6 +278,7 @@ class _AppPageState extends State<AppPage> {
+@@ -203,7 +207,9 @@ class _AppPageState extends State<AppPage> {
+                               child: child,
+                             ),
+                           ),
+-                          child: KeyedSubtree(key: _headerKey, child: header),
++                          // 每一帧只改透明度：把标题封进 RepaintBoundary，滚动时合成缓存图层，
++                          // 不必每帧重新栅格化文字（低端机上这就是滑动卡顿的来源之一）。
++                          child: RepaintBoundary(child: KeyedSubtree(key: _headerKey, child: header)),
+                         ),
+                       ),
+                     ),
+@@ -222,7 +228,9 @@ class _AppPageState extends State<AppPage> {
+                   // Only once content is under the bar: at rest it would just
+                   // tint the glow.
+                   builder: (context, offset, child) => Opacity(opacity: (offset / 24).clamp(0.0, 1.0), child: child),
+-                  child: widget.solidBar ? BackdropVeil.top(height: top, feather: 12) : TopFade(height: top + 12),
++                  child: RepaintBoundary(
++                    child: widget.solidBar ? BackdropVeil.top(height: top, feather: 12) : TopFade(height: top + 12),
++                  ),
+                 ),
+               ),
+               Positioned(
+@@ -274,6 +282,7 @@ class _AppPageState extends State<AppPage> {
              ],
            ),
          ),
@@ -14122,6 +14159,54 @@ index 08e7db05..0b6bfe4b 100644
        ),
      );
      return UiTrace(scope: 'page', child: page);
+diff --git a/app/lib/ui/theme/page_transitions.dart b/app/lib/ui/theme/page_transitions.dart
+index 7fee925e..f4e23ebd 100644
+--- a/app/lib/ui/theme/page_transitions.dart
++++ b/app/lib/ui/theme/page_transitions.dart
+@@ -194,7 +194,6 @@ class _CardMorphState extends State<_CardMorph> {
+ 
+   @override
+   Widget build(BuildContext context) {
+-    final dim = Theme.of(context).brightness == Brightness.dark ? 0.32 : 0.10;
+     final origin = widget.origin;
+     return LayoutBuilder(
+       builder: (context, constraints) {
+@@ -209,9 +208,7 @@ class _CardMorphState extends State<_CardMorph> {
+             return Stack(
+               fit: StackFit.expand,
+               children: [
+-                IgnorePointer(
+-                  child: ColoredBox(color: Colors.black.withValues(alpha: dim * t)),
+-                ),
++                // 卡片长成页面时同样不压黑纱：整屏亮度不该跟着动画变。
+                 Transform(
+                   transform: Matrix4.identity()
+                     ..translateByDouble(rect.left, rect.top, 0, 1)
+@@ -401,7 +398,6 @@ class _RecedeState extends State<_Recede> {
+ 
+   @override
+   Widget build(BuildContext context) {
+-    final dark = Theme.of(context).brightness == Brightness.dark;
+     final Animation<double> motion = CardOrigin._covered(widget.route) ? kAlwaysDismissedAnimation : _curved;
+     return SlideTransition(
+       position: Tween<Offset>(begin: Offset.zero, end: const Offset(-0.25, 0)).animate(motion),
+@@ -411,14 +407,8 @@ class _RecedeState extends State<_Recede> {
+         fit: StackFit.passthrough,
+         children: [
+           SnapshotWidget(controller: _snapshot, mode: SnapshotMode.permissive, autoresize: true, child: widget.child),
+-          Positioned.fill(
+-            child: IgnorePointer(
+-              child: FadeTransition(
+-                opacity: motion,
+-                child: ColoredBox(color: Colors.black.withValues(alpha: dark ? 0.32 : 0.10)),
+-              ),
+-            ),
+-          ),
++          // 不再给下层页面压一层渐显的黑纱：推入/返回时整屏亮度会跟着变一下，
++          // 看起来就是"闪一下"。层级感交给边缘阴影和位移本身。
+         ],
+       ),
+     );
 diff --git a/app/lib/ui/web/dsh_web_launcher.dart b/app/lib/ui/web/dsh_web_launcher.dart
 index b4060526..4fc47aa8 100644
 --- a/app/lib/ui/web/dsh_web_launcher.dart
