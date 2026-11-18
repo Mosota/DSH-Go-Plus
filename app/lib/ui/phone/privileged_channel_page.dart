@@ -13,6 +13,7 @@ import '../common/segmented_pill.dart';
 import '../shell/page_frame.dart';
 import '../theme/app_icons.dart';
 import 'dnd_mode_page.dart' show shizukuDownloadUrl;
+import 'background_advanced.dart';
 import 'phone_widgets.dart';
 import 'restricted_settings_guide.dart' show RomFamily;
 
@@ -368,6 +369,7 @@ class _PairDialogState extends State<_PairDialog> {
           onPressed: _valid ? () => Navigator.pop(context, (_code.text.trim(), int.tryParse(_port.text.trim()))) : null,
           child: Text(l10n.phoneDndPair),
         ),
+        const PhoneAdvancedSettings(),
       ],
     );
   }

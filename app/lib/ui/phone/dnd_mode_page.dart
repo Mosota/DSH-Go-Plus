@@ -370,145 +370,21 @@ class _PhoneDndPageState extends ConsumerState<PhoneDndPage> {
             ),
           ],
         ),
-        if (using != PhonePrivilegedMode.off) ...[
-          ListPageCard(
-            margin: _groupMargin,
-            children: [
-              ListPageRow(
-                icon: AppIcons.dndMode,
-                iconColor: Theme.of(context).colorScheme.primary,
-                title: l10n.phoneDndUsing(using.label(l10n)),
-                titleMaxLines: 2,
-                subtitle: bg.effectiveReady ? l10n.phoneReady : (waiting ? bg.effectiveReason : null),
-                trailing: TextButton(onPressed: _ready ? _close : null, child: Text(l10n.commonClose)),
-              ),
-              if (bg.previewVersion == 1) ...[
-                ListPageRow(
-                  leading: const SizedBox(),
-                  title: l10n.phonePreviewTitle,
-                  subtitle: l10n.phonePreviewDescription,
-                  subtitleMaxLines: 4,
-                  trailing: Switch(
-                    value: bg.previewEnabled,
-                    onChanged: !_ready || _busy
-                        ? null
-                        : (enabled) =>
-                              unawaited(_run(() async => PhoneResult(await _phone.setBackgroundPreview(enabled)))),
-                  ),
-                ),
-                if (bg.previewEnabled)
-                  for (final candidate in previewTasks)
-                    ListPageRow(
-                      key: ValueKey('phone-preview-task-${candidate.id}'),
-                      leading: const SizedBox(),
-                      title: !hasSlotMetadata ? l10n.phonePreviewOpen : l10n.phonePreviewTask(candidate.id!.toString()),
-                      subtitle: candidate.app,
-                      onTap: _ready ? () => unawaited(_showPreview(candidate.id!)) : null,
-                    ),
-              ],
-            ],
-          ),
-          // The channel's own reason, whole: a failure never quietly becomes another channel.
-          if (!bg.effectiveReady && !waiting)
-            PhoneNote(tone: NoteTone.warn, text: bg.effectiveReason ?? l10n.phoneNotReadyYet),
-        ],
-        if (_error case final error? when error != bg.effectiveReason) PhoneNote(tone: NoteTone.warn, text: error),
-        if (bg.keep.enabled && _keepStatus(bg.keep).$1 != null)
-          PhoneNote(
-            tone: bg.keep.phase == PhoneKeepPhase.failed ? NoteTone.warn : NoteTone.info,
-            text: _keepStatus(bg.keep).$1!,
-          ),
-        if (using != PhonePrivilegedMode.off) ListPageCard(margin: _groupMargin, children: _channel(using, bg, open)),
-        if (using == PhonePrivilegedMode.off)
-          ...choices
-        else
-          PhoneOptionsFold(
-            key: const ValueKey('phone-dnd-channels'),
-            title: l10n.phoneDndChangeChannel,
-            children: choices,
-          ),
-        // 两块折叠之间补上与其他卡一致的间距（普通卡是 12+12=24）：折叠头卡
-        // 自己不带外边距，紧挨着会贴成一片。
-        if (using != PhonePrivilegedMode.off) const SizedBox(height: 24),
-        PhoneOptionsFold(
-          key: const ValueKey('phone-dnd-options'),
-          title: l10n.phoneControlAdvanced,
+        // 通道状态、更换连接方式、保持/并行/视口都在「特权通道」页：这里只留一个入口。
+        ListPageCard(
+          margin: _groupMargin,
           children: [
-            if (using != PhonePrivilegedMode.off && bg.privileged != null)
-              ListPageCard(margin: _groupMargin, children: [_keepRow(using, bg.keep)]),
-            if (bg.parallelism case final capacity? when status.ready)
-              ListPageCard(
-                margin: _groupMargin,
-                title: l10n.phoneBackgroundParallelTitle,
-                children: [
-                  ListPageRow(
-                    title: l10n.phoneBackgroundParallelStatus(
-                      capacity.configuredLimit,
-                      capacity.effectiveLimit,
-                      capacity.heldSlots,
-                    ),
-                    titleMaxLines: 4,
-                    subtitle: switch (capacity.reason) {
-                      'off' => l10n.phoneBackgroundParallelOff,
-                      'unsupported' => l10n.phoneBackgroundParallelUnsupported,
-                      'connectionRequired' => l10n.phoneBackgroundParallelConnection,
-                      'busy' => l10n.phoneBackgroundParallelBusy,
-                      'transportSerial' => l10n.phoneBackgroundParallelSerial,
-                      _ => l10n.phoneBackgroundParallelDescription,
-                    },
-                    subtitleMaxLines: 5,
-                  ),
-                  for (final limit in const [1, 2, 3])
-                    Semantics(
-                      selected: capacity.configuredLimit == limit,
-                      inMutuallyExclusiveGroup: true,
-                      child: ListPageRow(
-                        key: ValueKey('phone-background-limit-$limit'),
-                        leading: Icon(capacity.configuredLimit == limit ? AppIcons.radioOn : AppIcons.radioOff),
-                        title: l10n.phoneBackgroundParallelChoice(limit),
-                        onTap: !_ready || _busy || capacity.configuredLimit == limit
-                            ? null
-                            : () => unawaited(_run(() => _phone.setBackgroundParallelLimit(limit))),
-                      ),
-                    ),
-                ],
+            ListPageRow(
+              icon: AppIcons.shield,
+              title: '特权通道',
+              subtitle: using == PhonePrivilegedMode.off
+                  ? '未选择通道：Shizuku / Sui / root / 自连 ADB 的开关都在那一页'
+                  : '正在使用：${using.label(context.l10n)} · 高级设置也在那一页',
+              subtitleMaxLines: 2,
+              chevron: true,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const PhonePrivilegedPage()),
               ),
-            if (bg.viewport case final viewport? when bg.androidOk)
-              ListPageCard(
-                margin: _groupMargin,
-                title: l10n.phoneViewportTitle,
-                children: [
-                  ListPageRow(leading: const SizedBox(), title: l10n.phoneViewportDescription, titleMaxLines: 10),
-                  for (final preset in PhoneBackgroundViewport.values)
-                    Semantics(
-                      selected: viewport == preset,
-                      inMutuallyExclusiveGroup: true,
-                      child: ListPageRow(
-                        key: ValueKey('phone-viewport-${preset.name}'),
-                        leading: Icon(viewport == preset ? AppIcons.radioOn : AppIcons.radioOff),
-                        title: preset == PhoneBackgroundViewport.portrait
-                            ? l10n.phoneViewportPortrait
-                            : l10n.phoneViewportLandscape,
-                        onTap: !_ready || _busy || viewport == preset
-                            ? null
-                            : () => unawaited(_run(() => _phone.setBackgroundViewport(preset))),
-                      ),
-                    ),
-                ],
-              ),
-            ListPageCard(
-              margin: _groupMargin,
-              title: l10n.phoneDndRequirements,
-              children: [
-                BulletLines([
-                  l10n.phoneDndKeepUnlocked,
-                  if (!bg.keep.enabled) l10n.phoneDndReactivate,
-                  if (using == PhonePrivilegedMode.off ||
-                      using == PhonePrivilegedMode.shizuku ||
-                      using == PhonePrivilegedMode.adb)
-                    l10n.phoneDndKeepDebugging,
-                ]),
-              ],
             ),
           ],
         ),
