@@ -18,6 +18,7 @@ import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 import 'phone_widgets.dart';
 import 'background_preview.dart';
+import 'privileged_channel_page.dart';
 import 'ball_settings_page.dart';
 import 'restricted_settings_guide.dart' show RomFamily;
 
@@ -375,7 +376,7 @@ class _PhoneDndPageState extends ConsumerState<PhoneDndPage> {
           margin: _groupMargin,
           children: [
             ListPageRow(
-              icon: AppIcons.shield,
+              icon: AppIcons.privacy,
               title: '特权通道',
               subtitle: using == PhonePrivilegedMode.off
                   ? '未选择通道：Shizuku / Sui / root / 自连 ADB 的开关都在那一页'
