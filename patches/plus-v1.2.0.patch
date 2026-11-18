@@ -14160,10 +14160,21 @@ index 08e7db05..e51c11c1 100644
      );
      return UiTrace(scope: 'page', child: page);
 diff --git a/app/lib/ui/theme/page_transitions.dart b/app/lib/ui/theme/page_transitions.dart
-index 7fee925e..f4e23ebd 100644
+index 7fee925e..a62c4114 100644
 --- a/app/lib/ui/theme/page_transitions.dart
 +++ b/app/lib/ui/theme/page_transitions.dart
-@@ -194,7 +194,6 @@ class _CardMorphState extends State<_CardMorph> {
+@@ -64,7 +64,9 @@ class AppPageTransitionsBuilder extends PageTransitionsBuilder {
+     Widget child,
+   ) {
+     final linear = route.popGestureInProgress;
+-    final origin = CardOrigin._claim(route);
++    // 卡片长成页面的动画会给整页做一次缩放 + 抗锯齿裁剪，观感上就是"闪一下"，
++    // 而且每帧都要重新裁剪整页。二级页统一走滑入，不再从卡片 origin 变形。
++    final CardOrigin? origin = null;
+     return _BackGesture(
+       route: route,
+       child: SheetRecedePage(
+@@ -194,7 +196,6 @@ class _CardMorphState extends State<_CardMorph> {
  
    @override
    Widget build(BuildContext context) {
@@ -14171,7 +14182,7 @@ index 7fee925e..f4e23ebd 100644
      final origin = widget.origin;
      return LayoutBuilder(
        builder: (context, constraints) {
-@@ -209,9 +208,7 @@ class _CardMorphState extends State<_CardMorph> {
+@@ -209,9 +210,7 @@ class _CardMorphState extends State<_CardMorph> {
              return Stack(
                fit: StackFit.expand,
                children: [
@@ -14182,7 +14193,7 @@ index 7fee925e..f4e23ebd 100644
                  Transform(
                    transform: Matrix4.identity()
                      ..translateByDouble(rect.left, rect.top, 0, 1)
-@@ -401,7 +398,6 @@ class _RecedeState extends State<_Recede> {
+@@ -401,7 +400,6 @@ class _RecedeState extends State<_Recede> {
  
    @override
    Widget build(BuildContext context) {
@@ -14190,7 +14201,7 @@ index 7fee925e..f4e23ebd 100644
      final Animation<double> motion = CardOrigin._covered(widget.route) ? kAlwaysDismissedAnimation : _curved;
      return SlideTransition(
        position: Tween<Offset>(begin: Offset.zero, end: const Offset(-0.25, 0)).animate(motion),
-@@ -411,14 +407,8 @@ class _RecedeState extends State<_Recede> {
+@@ -411,14 +409,8 @@ class _RecedeState extends State<_Recede> {
          fit: StackFit.passthrough,
          children: [
            SnapshotWidget(controller: _snapshot, mode: SnapshotMode.permissive, autoresize: true, child: widget.child),
@@ -14807,9 +14818,6 @@ new mode 100644
 diff --git a/packages/dsh_remote/tool/e2e/run_e2e.sh b/packages/dsh_remote/tool/e2e/run_e2e.sh
 old mode 100755
 new mode 100644
-diff --git a/runtime/build-runtime.sh b/runtime/build-runtime.sh
-old mode 100755
-new mode 100644
 diff --git a/runtime/direct/dns.mjs b/runtime/direct/dns.mjs
 index a42016b1..0678ba93 100644
 --- a/runtime/direct/dns.mjs
@@ -14833,13 +14841,7 @@ index a42016b1..0678ba93 100644
            families = families.filter((value) => available.has(value));
          }
        } catch { /* retain both families when Android denies interface enumeration */ }
-diff --git a/runtime/test-host.sh b/runtime/test-host.sh
-old mode 100755
-new mode 100644
 diff --git a/runtime/tests/direct/run-tests.sh b/runtime/tests/direct/run-tests.sh
-old mode 100755
-new mode 100644
-diff --git a/runtime/tests/run-guard-tests.sh b/runtime/tests/run-guard-tests.sh
 old mode 100755
 new mode 100644
 diff --git a/runtime/tests/run-native-tests.sh b/runtime/tests/run-native-tests.sh
