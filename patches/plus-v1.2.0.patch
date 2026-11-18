@@ -13291,7 +13291,7 @@ index 00000000..24621a18
 +}
 diff --git a/app/lib/ui/phone/privileged_channel_page.dart b/app/lib/ui/phone/privileged_channel_page.dart
 new file mode 100644
-index 00000000..5e8996b4
+index 00000000..2368b072
 --- /dev/null
 +++ b/app/lib/ui/phone/privileged_channel_page.dart
 @@ -0,0 +1,420 @@
@@ -13427,14 +13427,6 @@ index 00000000..5e8996b4
 +          title: '使用前提',
 +          children: [
 +            BulletLines([l10n.phoneDndKeepUnlocked, l10n.phoneDndReactivate, l10n.phoneDndKeepDebugging]),
-+        PhoneOptionsFold(
-+          title: '更换连接方式',
-+          children: _channelChoices(bg),
-+        ),
-+        PhoneOptionsFold(
-+          title: '更多设置',
-+          children: const [PhoneAdvancedSettings()],
-+        ),
 +          ],
 +        ),
 +        if (bg.mode != PhoneBackgroundMode.off)
@@ -13484,6 +13476,14 @@ index 00000000..5e8996b4
 +        ),
 +        if (_error case final error?) PhoneNote(tone: NoteTone.warn, text: error),
 +        if (view == PhoneBackgroundMode.shizuku) ..._shizuku(bg, usable) else ..._adb(bg, usable),
++        PhoneOptionsFold(
++          title: '更换连接方式',
++          children: _channelChoices(bg),
++        ),
++        PhoneOptionsFold(
++          title: '更多设置',
++          children: const [PhoneAdvancedSettings()],
++        ),
 +      ],
 +    );
 +  }
