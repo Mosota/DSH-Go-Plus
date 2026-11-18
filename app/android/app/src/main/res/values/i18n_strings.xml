@@ -105,8 +105,8 @@
     <string name="pairing_channel">Wireless debugging pairing</string>
     <string name="pairing_code">6-digit pairing code</string>
     <string name="pairing_enter">Enter code</string>
-    <string name="pairing_title">Pair background mode</string>
-    <string name="pairing_text">Tap here to enter the code shown under “Pair device with pairing code”</string>
+    <string name="pairing_title">Privileged channel pairing</string>
+    <string name="pairing_text">Tap here to enter the code shown under “Pair device with pairing code” (Shizuku / ADB pairing for the privileged channel)</string>
     <string name="pairing_enter_code_error">Enter a pairing code</string>
     <string name="pairing_invalid_code">The pairing code must be 6 digits</string>
     <string name="pairing_port_missing">Pairing port not found. Open “Pair device with pairing code”</string>

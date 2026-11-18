@@ -100,8 +100,8 @@
     <string name="pairing_channel">无线调试配对</string>
     <string name="pairing_code">6 位配对码</string>
     <string name="pairing_enter">输入配对码</string>
-    <string name="pairing_title">配对不打扰模式</string>
-    <string name="pairing_text">在「使用配对码配对设备」页面看到配对码后，点此输入</string>
+    <string name="pairing_title">特权通道配对</string>
+    <string name="pairing_text">无线调试配对码：在「使用配对码配对设备」页面看到后，点此输入（这是特权通道的配对，不是不打扰模式）</string>
     <string name="pairing_enter_code_error">请输入配对码</string>
     <string name="pairing_invalid_code">配对码应为 6 位数字</string>
     <string name="pairing_port_missing">未发现无线调试配对端口，请确认已打开「使用配对码配对设备」</string>

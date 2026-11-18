@@ -75,35 +75,29 @@ class _RingPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final c = size.center(Offset.zero);
-    final stroke = math.max(1.2, size.shortestSide * 0.11);
-    final r = size.shortestSide / 2 - stroke / 2;
+    final stroke = math.max(1.2, size.shortestSide * 0.10);
+    final outerR = size.shortestSide / 2 - stroke / 2;
+    final innerR = outerR * 0.52;
+    final t = turns ?? 0;
 
-    // 环是闭合的（没有缺口），靠一段更亮的弧在环上走动来表现"在转"。
-    canvas.drawCircle(
-      c,
-      r,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke
-        ..color = color.withValues(alpha: 0.35),
-    );
-    final rect = Rect.fromCircle(center: c, radius: r);
-    final start = (turns ?? 0) * 2 * math.pi - math.pi / 2;
-    canvas.drawArc(
-      rect,
-      start,
-      2 * math.pi * 0.28,
-      false,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke
-        ..strokeCap = StrokeCap.round
-        ..color = color,
-    );
+    void ring(double radius, double startTurns, double sweepFraction, double alpha, double width) {
+      final rect = Rect.fromCircle(center: c, radius: radius);
+      canvas.drawArc(
+        rect,
+        startTurns * 2 * math.pi - math.pi / 2,
+        2 * math.pi * sweepFraction,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = width
+          ..strokeCap = StrokeCap.round
+          ..color = color.withValues(alpha: alpha),
+      );
+    }
 
-    // 中心小点：闭合环 + 走动的高亮弧，看起来是个在转的环。
-    canvas.drawCircle(c, math.max(1.0, size.shortestSide * 0.10),
-        Paint()..color = color.withValues(alpha: 0.55));
+    // 同心双环，方向相反：外环顺时针、内环逆时针，各留一段缺口，转动才看得出来。
+    ring(outerR, t, 0.78, 0.95, stroke);
+    ring(innerR, -t * 1.35, 0.66, 0.55, stroke * 0.9);
   }
 
   @override

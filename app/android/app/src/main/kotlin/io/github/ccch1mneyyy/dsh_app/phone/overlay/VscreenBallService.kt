@@ -340,9 +340,9 @@ class VscreenBallService : Service() {
         return (yFraction * free).roundToInt().coerceIn(0, free)
     }
 
-    /** Half a circle off screen: the window's [HALF_OUT_DP] dp beyond the edge, less half of it. */
+    /** Half a circle off screen: exactly half the window past the edge. */
     private fun halfX(): Int =
-        if (side == SIDE_LEFT) dp(HALF_OUT_DP) - size / 2 else screenW() - size / 2 - dp(HALF_OUT_DP)
+        if (side == SIDE_LEFT) -size / 2 else screenW() - size / 2
 
     private fun saveDock() {
         VscreenBallPrefs.saveDock(this, if (side == SIDE_LEFT) "left" else "right", yFraction)
@@ -359,7 +359,7 @@ class VscreenBallService : Service() {
         if (panelOpen || halfHidden) return
         val view = root ?: return
         val p = params ?: return
-        p.x = if (side == SIDE_LEFT) -(size / 2) + dp(HALF_OUT_DP) else screenW() - size / 2 - dp(HALF_OUT_DP)
+        p.x = if (side == SIDE_LEFT) -size / 2 else screenW() - size / 2
         val moved = runCatching { windows.updateViewLayout(view, p) }
         halfHidden = moved.isSuccess
         moved.onFailure { Log.w(TAG_BALL, "half-hide layout refused, retrying", it) }
@@ -958,9 +958,6 @@ class VscreenBallService : Service() {
 
         /** Room round the ball, inside the window, for its shadow. */
         private const val PAD_DP = 10
-
-        /** Half-hidden: the window sits this far past the edge, so its circle is half off. */
-        private const val HALF_OUT_DP = 4
 
         /** A menu nobody touched for this long is closed by the watchdog. */
         private const val MENU_STALE_MS = 8_000L
