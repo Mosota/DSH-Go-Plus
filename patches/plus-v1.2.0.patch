@@ -4977,7 +4977,7 @@ index 1f74de24..ce180a5d 100644
                  .addAction(Notification.Action.Builder(null, AppStrings.get(context, R.string.service_stop), stop).build())
                  .build()
 diff --git a/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/GuestSetup.kt b/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/GuestSetup.kt
-index 3e902fed..493f1a93 100644
+index 3e902fed..d74e6f14 100644
 --- a/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/GuestSetup.kt
 +++ b/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/GuestSetup.kt
 @@ -29,7 +29,7 @@ object GuestSetup {
@@ -4997,7 +4997,7 @@ index 3e902fed..493f1a93 100644
                      "\n- 文件工具、会话目录、@ 引用、AGENTS 和 skills 使用同一个完整绝对路径；该路径在 shell 内也同名可见。旧的 `/root` 路径仍可用于文件工具。shell 的输出不改写，不要删除路径的前缀。\n"
                  }
                  directInstructions.replace("`/root/workspace`", "`${rootfs.canonicalPath}/root/workspace`") + pathNote
-@@ -245,12 +246,114 @@ object GuestSetup {
+@@ -245,12 +246,128 @@ object GuestSetup {
  
      /** Up to two of the network's servers, IPv4 first, then the public fallbacks: three in all. */
      fun pickDns(addrs: List<InetAddress>): List<String> {
@@ -5079,6 +5079,20 @@ index 3e902fed..493f1a93 100644
 +        }
 +        written
 +    }.getOrDefault(0)
++
++    /**
++     * 引擎的补丁文件（/etc/dsh-app/dsh-web.patch.yml）：官方镜像里那份把 compaction-basic 的
++     * thresholdRatio 留在 0.8，界面上大约到一半就自动压缩。这里整份覆盖成我们的版本
++     * （阈值 0.95），文件内容没变就不写。返回是否写入。
++     */
++    fun writeEnginePatch(context: Context, rootfs: File): Boolean = runCatching {
++        val target = File(rootfs, "etc/dsh-app/dsh-web.patch.yml")
++        if (!target.parentFile.isDirectory && !target.parentFile.mkdirs()) return false
++        val bytes = context.assets.open("dshgo/dsh-web.patch.yml").readBytes()
++        if (target.isFile && target.readBytes().contentEquals(bytes)) return false
++        target.writeBytes(bytes)
++        true
++    }.getOrDefault(false)
 +
 +    /**
 +     * The web UI's phone layout lives in the runtime's frontend bundle, which the APK cannot
@@ -5429,7 +5443,7 @@ index 00000000..d61c7c96
 +    }
 +}
 diff --git a/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/RuntimeController.kt b/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/RuntimeController.kt
-index 57e1916e..68b9b9d9 100644
+index 57e1916e..9f646045 100644
 --- a/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/RuntimeController.kt
 +++ b/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/RuntimeController.kt
 @@ -50,6 +50,7 @@ class RuntimeController private constructor(private val app: Context) : DshProce
@@ -5456,11 +5470,14 @@ index 57e1916e..68b9b9d9 100644
          }
          setPhase(Phase.INSTALLING)
          worker.execute {
-@@ -512,6 +520,14 @@ class RuntimeController private constructor(private val app: Context) : DshProce
+@@ -512,6 +520,17 @@ class RuntimeController private constructor(private val app: Context) : DshProce
                      log("[dsh-app] completed engine cleanup failed: ${e.message}", "system")
                  }
                  noteDns(GuestSetup.writeResolvConf(app, installer.rootfs), DnsConfigSource.START)
 +                GuestSetup.writeNpmConfig(app, installer.rootfs)
++                if (GuestSetup.writeEnginePatch(app, installer.rootfs)) {
++                    log("[dsh-app] engine patch written: compaction threshold 0.95", "system")
++                }
 +                val directFiles = GuestSetup.writeDnsShim(app, installer.rootfs)
 +                log(
 +                    if (directFiles > 0) "[dsh-app] direct modules written: $directFiles (dns shim included)"
@@ -5471,7 +5488,7 @@ index 57e1916e..68b9b9d9 100644
                  val storage = pendingPhoneStorage && PhoneStorage.isGranted(app) && PhoneStorage.binds().isNotEmpty()
                  PhoneStorage.syncShortcut(installer.rootfs, storage)
                  // Phone control: bridge up and guest files written before DSH starts; off in safe mode.
-@@ -532,6 +548,35 @@ class RuntimeController private constructor(private val app: Context) : DshProce
+@@ -532,6 +551,35 @@ class RuntimeController private constructor(private val app: Context) : DshProce
                  val env = LinkedHashMap<String, String>()
                  env["TZ"] = java.util.TimeZone.getDefault().id
                  env.putAll(pendingEnv)
@@ -5507,7 +5524,7 @@ index 57e1916e..68b9b9d9 100644
                  workspaceRecovery.applyEnvironment(env)
                  PerformancePolicy.applyEngineEnvironment(app, env, manifest.launchArgv, manifest.launchEnv)
                  if (safe) {
-@@ -1154,7 +1199,39 @@ class RuntimeController private constructor(private val app: Context) : DshProce
+@@ -1154,7 +1202,39 @@ class RuntimeController private constructor(private val app: Context) : DshProce
          }
      }
  
