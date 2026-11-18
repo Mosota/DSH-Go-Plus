@@ -195,6 +195,31 @@ class BackgroundControl private constructor(context: Context) {
     }
     @Volatile private var interruptRequested = false
     @Volatile private var selectingResource = false
+
+    /** 什么时候开始预留通道的：预留超过一分钟一定是漏了，别让界面永远「正在连接」。 */
+    @Volatile private var selectStartedAt = 0L
+
+    private fun beginSelect() {
+        selectStartedAt = android.os.SystemClock.elapsedRealtime()
+        selectingResource = true
+    }
+
+    private fun endSelect() {
+        selectingResource = false
+        selectStartedAt = 0L
+    }
+
+    /** 预留卡住超过一分钟就放开：宁可重试一次，也别让页面一直转。 */
+    private fun reclaimStaleSelect() {
+        if (!selectingResource) return
+        val at = selectStartedAt
+        if (at in 1..Long.MAX_VALUE &&
+            android.os.SystemClock.elapsedRealtime() - at > 60_000L
+        ) {
+            selectingResource = false
+            selectStartedAt = 0L
+        }
+    }
     private var interruptFinishing = false
     private var interruptStopping = false
 
@@ -277,6 +302,7 @@ class BackgroundControl private constructor(context: Context) {
 
     /** Only the new model's facts: mode, Android version, the channel's own state, a switch in progress. */
     private fun readiness(): String? {
+        reclaimStaleSelect()
         val channelReason = when (mode) {
             "shizuku", "sui" -> shizuku.reason() ?: run {
                 when (val provider = shizuku.status().provider) {
@@ -398,8 +424,14 @@ class BackgroundControl private constructor(context: Context) {
                     if (selectingResource || interruptRequested || selfCheckBorrow != null ||
                         transportUsers != 1 || restoring != null || selectionChange != null || !changing && taskResource.occupied) return transportBusy()
                     // Same-mode rechecks reserve the selection too, before any connection work.
-                    selectingResource = true
-                    if (changing) taskResource.seal().forEach { it.driver.seal() }
+                    beginSelect()
+                    try {
+                        if (changing) taskResource.seal().forEach { it.driver.seal() }
+                    } catch (t: Throwable) {
+                        // seal 抛异常时别把预留留在 true 上：那会让页面永远显示「正在连接后台屏通道」。
+                        endSelect()
+                        throw t
+                    }
                 }
             }
             try {
@@ -459,7 +491,7 @@ class BackgroundControl private constructor(context: Context) {
                 val failure = connectAndCheck(selection, allowed)
                 return mapOf("ok" to (failure == null), "reason" to failure)
             } finally {
-                synchronized(this) { selectingResource = false }
+                synchronized(this) { endSelect() }
                 finishInterrupt()
                 if (keep.enabled) restoreKeptChannel()
             }
@@ -510,7 +542,7 @@ class BackgroundControl private constructor(context: Context) {
                     else taskResource.boundPeer ?: run {
                         if (transportUsers != 1 || restoring?.isDone == false || selectionChange != null)
                             return transportBusy()
-                        selectingResource = true
+                        beginSelect()
                         ownsSelection = true
                         null
                     }
@@ -524,7 +556,7 @@ class BackgroundControl private constructor(context: Context) {
             return if (connected != null) mapOf("ok" to true)
                 else mapOf("ok" to false, "reason" to rootReason())
         } finally {
-            if (ownsSelection) synchronized(this) { selectingResource = false }
+            if (ownsSelection) synchronized(this) { endSelect() }
             endTransportUse()
             notifyChanged()
         }
@@ -588,7 +620,7 @@ class BackgroundControl private constructor(context: Context) {
                     else taskResource.boundPeer ?: run {
                         if (transportUsers != 1 || restoring?.isDone == false || selectionChange != null)
                             return transportBusy()
-                        selectingResource = true
+                        beginSelect()
                         ownsSelection = true
                         null
                     }
@@ -598,7 +630,7 @@ class BackgroundControl private constructor(context: Context) {
                 else adb.connect(port, mayStart = { mayStart() && !interruptRequested }) != null
             return mapOf("ok" to connected, "reason" to if (connected) null else adb.reason())
         } finally {
-            if (ownsSelection) synchronized(this) { selectingResource = false }
+            if (ownsSelection) synchronized(this) { endSelect() }
             endTransportUse()
             notifyChanged()
         }
@@ -1080,7 +1112,7 @@ class BackgroundControl private constructor(context: Context) {
                     if (!allowed() || taskResource.occupied || selfCheckBorrow != null ||
                         transportUsers != 1 || restoring?.isDone == false || selectionChange != null) return null
                     if (!selectingResource) {
-                        selectingResource = true
+                        beginSelect()
                         ownsSelection = true
                     }
                     // Otherwise the explicit settings caller owns the same existing reservation.
@@ -1106,7 +1138,7 @@ class BackgroundControl private constructor(context: Context) {
                 }
             }
         } finally {
-            if (ownsSelection) synchronized(this) { selectingResource = false }
+            if (ownsSelection) synchronized(this) { endSelect() }
             if (previewChanged) onPreviewChanged()
             if (!transportReserved) endTransportUse()
             if (ownsSelection) notifyChanged()

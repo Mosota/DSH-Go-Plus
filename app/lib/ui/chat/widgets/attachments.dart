@@ -469,7 +469,6 @@ Future<void> openAttachmentGallery(BuildContext context, List<ViewerImage> image
   return Navigator.of(context).push(
     PageRouteBuilder<void>(
       opaque: false,
-      barrierColor: Colors.black.withValues(alpha: 0.92),
       transitionDuration: AppMotion.of(context, AppMotion.standard),
       reverseTransitionDuration: AppMotion.of(context, AppMotion.quick),
       pageBuilder: (context, animation, _) => FadeTransition(
@@ -553,7 +552,8 @@ class _ImageViewerState extends State<_ImageViewer> {
     return Theme(
       data: buildDarkTheme(accent: DshSurfaces.of(context).accent, glassBlur: DshSurfaces.of(context).blurEnabled),
       child: Scaffold(
-        backgroundColor: Colors.transparent,
+        // 黑纱画在页面上，跟页面一起淡入淡出；原来放在路由 barrier 上会先亮一下再变暗。
+        backgroundColor: Colors.black.withValues(alpha: 0.92),
         body: AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle.light.copyWith(
             statusBarColor: Colors.transparent,
