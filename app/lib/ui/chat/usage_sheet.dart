@@ -5,6 +5,8 @@ import 'dart:math' as math;
 
 import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter/material.dart';
+
+import '../common/clock24.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
@@ -308,7 +310,7 @@ class _SubscriptionQuota extends ConsumerWidget {
     final local = reset.toLocal();
     final material = MaterialLocalizations.of(context);
     return context.l10n.activityQuotaReset(
-      '${material.formatFullDate(local)} ${material.formatTimeOfDay(TimeOfDay.fromDateTime(local))}',
+      '${material.formatFullDate(local)} ${clock24(local)}',
     );
   }
 

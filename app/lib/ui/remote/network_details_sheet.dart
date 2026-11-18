@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../common/clock24.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
@@ -69,7 +71,7 @@ class _RemoteNetworkDetailsSheetState extends ConsumerState<RemoteNetworkDetails
     final material = MaterialLocalizations.of(context);
     final observedLabel = observedAt == null
         ? null
-        : '${material.formatCompactDate(observedAt)} ${material.formatTimeOfDay(TimeOfDay.fromDateTime(observedAt), alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context))}';
+        : '${material.formatCompactDate(observedAt)} ${clock24(observedAt)}';
     String timing(Duration? value) =>
         value == null ? l10n.remoteNetworkUnmeasured : l10n.remoteNetworkMilliseconds(value.inMilliseconds);
     String ipVersion(NetworkIpVersion? value) => switch (value) {
