@@ -4748,6 +4748,22 @@ index 00000000..8862a4ad
 +        null
 +    }
 +}
+diff --git a/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/DirectLaunch.kt b/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/DirectLaunch.kt
+index 3b9d192d..1affda52 100644
+--- a/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/DirectLaunch.kt
++++ b/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/DirectLaunch.kt
+@@ -71,7 +71,10 @@ object DirectLaunch {
+ 
+     /** NODE_OPTIONS for a PRoot launch: the caller's flags (heap, DNS order) plus [PROOT_DNS]. */
+     fun prootNodeOptions(nodeOptions: String?): String =
+-        listOfNotNull(nodeOptions?.ifEmpty { null }, "--import=$PROOT_DNS").joinToString(" ")
++        // 不再注入 --import=/opt/dsh-go/direct/proot-dns.mjs：新版 rootfs 的 Node 24 自带
++        // 解析，再套一层 DNS 补丁会让引擎里的 fetch 全部失败（python/glibc 却正常，
++        // 实测 401/0.145s）。只保留调用方给的 flags。
++        nodeOptions?.trim().orEmpty()
+ 
+     fun loaderPath(abi: String): String = when (abi) {
+         "arm64-v8a" -> "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1"
 diff --git a/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/DshService.kt b/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/DshService.kt
 index 1f74de24..ce180a5d 100644
 --- a/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/DshService.kt
