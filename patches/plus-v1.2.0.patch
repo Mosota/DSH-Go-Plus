@@ -13291,10 +13291,10 @@ index 00000000..24621a18
 +}
 diff --git a/app/lib/ui/phone/privileged_channel_page.dart b/app/lib/ui/phone/privileged_channel_page.dart
 new file mode 100644
-index 00000000..7620286a
+index 00000000..add4ea30
 --- /dev/null
 +++ b/app/lib/ui/phone/privileged_channel_page.dart
-@@ -0,0 +1,427 @@
+@@ -0,0 +1,414 @@
 +import 'dart:async';
 +
 +import 'package:flutter/material.dart';
@@ -13466,19 +13466,6 @@ index 00000000..7620286a
 +                    : () => unawaited(_run(() => _phone.setBackgroundMode(bg.mode), done: '通道已重新检查')),
 +              ),
 +            ],
-+          ),
-+        Padding(
-+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-+          child: SegmentedPill<PhoneBackgroundMode>(
-+            segments: [
-+              PillSegment(PhoneBackgroundMode.shizuku, 'Shizuku'),
-+              PillSegment(PhoneBackgroundMode.adb, l10n.phoneDndDirectAdb),
-+            ],
-+            selected: view,
-+            onChanged: (mode) => setState(() {
-+              _view = mode;
-+              _error = null;
-+            }),
 +          ),
 +        ),
 +        if (_error case final error?) PhoneNote(tone: NoteTone.warn, text: error),
