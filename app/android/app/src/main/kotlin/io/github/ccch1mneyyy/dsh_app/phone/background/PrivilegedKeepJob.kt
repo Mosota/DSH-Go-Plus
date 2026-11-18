@@ -47,7 +47,8 @@ class PrivilegedKeepJob : JobService() {
     companion object {
         private const val JOB_ID = 0x44534850
         private fun wanted(context: Context): String {
-            if (Build.VERSION.SDK_INT < BackgroundPolicy.MIN_SDK || !PhoneControl.switchedOn(context)) return "off"
+            // 保持通道属于「特权通道」：不因为「手机操控」总开关关着就不恢复。
+            if (Build.VERSION.SDK_INT < BackgroundPolicy.MIN_SDK) return "off"
             return context.getSharedPreferences("phone-privileged-keep", Context.MODE_PRIVATE)
                 .getString("keptMode", "off")?.takeIf { it in PrivilegedKeepState.MODES } ?: "off"
         }

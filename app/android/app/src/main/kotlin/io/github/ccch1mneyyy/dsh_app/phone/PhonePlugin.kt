@@ -215,8 +215,6 @@ class PhonePlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandle
                 val backend = args?.get("backend") as? String
                 if (args?.keys != setOf("enabled", "backend") || enabled == null || backend !in setOf("shizuku", "adb")) {
                     result.success(mapOf("ok" to false, "errorCode" to "invalidArguments"))
-                } else if (enabled && !control.isEnabled()) {
-                    result.success(mapOf("ok" to false, "errorCode" to "disabled"))
                 } else async(result, shortControl = true) { control.shell.configure(enabled, backend!!) }
             }
             "androidShellRequestPermission" -> async(result) { control.shell.requestShizukuPermission() }
