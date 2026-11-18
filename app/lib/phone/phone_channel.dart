@@ -306,6 +306,7 @@ class PhoneBackgroundStatus {
     this.vdisplayEnabled = false,
     this.ready = false,
     this.reason,
+    this.selectionPendingMs = 0,
     this.androidOk = false,
     this.shizuku = const ShizukuStatus(),
     this.adb = const AdbStatus(),
@@ -323,6 +324,7 @@ class PhoneBackgroundStatus {
     vdisplayEnabled: m['vdisplayEnabled'] == null ? false : _flag(m['vdisplayEnabled']),
     ready: _flag(m['ready']),
     reason: _text(m['reason']),
+    selectionPendingMs: (_map(m)['selectionPendingMs'] as num?)?.toInt() ?? 0,
     androidOk: _flag(m['androidOk']),
     shizuku: ShizukuStatus.fromMap(_map(m['shizuku'])),
     adb: AdbStatus.fromMap(_map(m['adb'])),
@@ -346,6 +348,9 @@ class PhoneBackgroundStatus {
 
   /// Why not, one Chinese sentence from the native side.
   final String? reason;
+
+  /// 通道选择已经等了多久（毫秒）；0 = 没在连接。
+  final int selectionPendingMs;
 
   /// Android 14 or later (the practical floor).
   final bool androidOk;

@@ -214,7 +214,7 @@ class BackgroundControl private constructor(context: Context) {
         if (!selectingResource) return
         val at = selectStartedAt
         if (at in 1..Long.MAX_VALUE &&
-            android.os.SystemClock.elapsedRealtime() - at > 60_000L
+            android.os.SystemClock.elapsedRealtime() - at > 20_000L
         ) {
             selectingResource = false
             selectStartedAt = 0L
@@ -272,6 +272,9 @@ class BackgroundControl private constructor(context: Context) {
             "shell" to identityForDisplay(),
             "vdisplayEnabled" to vdisplayEnabled,
             "ready" to PrivilegedPathPolicy.legacyReady(mode, reason == null),
+            // 通道预留已经持续多久：页面据此显示"已等待 N 秒"，而不是无限转圈。
+            "selectionPendingMs" to if (selectingResource && selectStartedAt > 0)
+                (android.os.SystemClock.elapsedRealtime() - selectStartedAt).coerceAtLeast(0) else 0L,
             "reason" to PrivilegedPathPolicy.legacyReason(
                 mode, reason, AppStrings.get(app, R.string.background_root_legacy_client),
             ),

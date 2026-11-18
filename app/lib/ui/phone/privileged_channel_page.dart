@@ -130,7 +130,11 @@ class _PhonePrivilegedPageState extends ConsumerState<PhonePrivilegedPage> {
                 icon: AppIcons.dndMode,
                 iconColor: Theme.of(context).colorScheme.primary,
                 title: bg.mode == PhoneBackgroundMode.shizuku ? l10n.phoneDndUsing('Shizuku') : l10n.phoneDndUsing('自连 ADB'),
-                subtitle: bg.ready ? l10n.phoneReady : (bg.reason ?? l10n.phoneNotReadyYet),
+                subtitle: bg.ready
+                    ? l10n.phoneReady
+                    : bg.selectionPendingMs > 0
+                        ? '正在连接通道（已 ${(bg.selectionPendingMs / 1000).round()} 秒）…点「重新检查此通道」可重试'
+                        : (bg.reason ?? l10n.phoneNotReadyYet),
                 trailing: TextButton(
                   onPressed: _busy ? null : () => _setMode(PhoneBackgroundMode.off),
                   child: Text(l10n.commonClose),
@@ -154,6 +158,7 @@ class _PhonePrivilegedPageState extends ConsumerState<PhonePrivilegedPage> {
         ),
         if (_error case final error?) PhoneNote(tone: NoteTone.warn, text: error),
         if (view == PhoneBackgroundMode.shizuku) ..._shizuku(bg, usable) else ..._adb(bg, usable),
+        const PhoneAdvancedSettings(),
       ],
     );
   }
@@ -369,7 +374,6 @@ class _PairDialogState extends State<_PairDialog> {
           onPressed: _valid ? () => Navigator.pop(context, (_code.text.trim(), int.tryParse(_port.text.trim()))) : null,
           child: Text(l10n.phoneDndPair),
         ),
-        const PhoneAdvancedSettings(),
       ],
     );
   }
