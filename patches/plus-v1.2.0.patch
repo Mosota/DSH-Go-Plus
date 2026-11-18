@@ -13291,10 +13291,10 @@ index 00000000..24621a18
 +}
 diff --git a/app/lib/ui/phone/privileged_channel_page.dart b/app/lib/ui/phone/privileged_channel_page.dart
 new file mode 100644
-index 00000000..5f82c8ab
+index 00000000..5e8996b4
 --- /dev/null
 +++ b/app/lib/ui/phone/privileged_channel_page.dart
-@@ -0,0 +1,404 @@
+@@ -0,0 +1,420 @@
 +import 'dart:async';
 +
 +import 'package:flutter/material.dart';
@@ -13400,6 +13400,16 @@ index 00000000..5f82c8ab
 +    await _run(() => _phone.adbPair(entered.$1, port: entered.$2), done: l10n.phoneDndPairedConnect);
 +  }
 +
++  List<Widget> _channelChoices(PhoneBackgroundStatus bg) => [
++    for (final mode in PhoneBackgroundMode.values)
++      if (mode != PhoneBackgroundMode.off)
++        ListPageRow(
++          leading: Icon(bg.mode == mode ? AppIcons.radioOn : AppIcons.radioOff),
++          title: mode == PhoneBackgroundMode.shizuku ? 'Shizuku' : (mode == PhoneBackgroundMode.adb ? '自连 ADB' : mode.name),
++          onTap: _busy ? null : () => unawaited(_run(() => _phone.setBackgroundMode(mode))),
++        ),
++  ];
++
 +  @override
 +  Widget build(BuildContext context) {
 +    final l10n = context.l10n;
@@ -13417,7 +13427,14 @@ index 00000000..5f82c8ab
 +          title: '使用前提',
 +          children: [
 +            BulletLines([l10n.phoneDndKeepUnlocked, l10n.phoneDndReactivate, l10n.phoneDndKeepDebugging]),
-+        const PhoneAdvancedSettings(),
++        PhoneOptionsFold(
++          title: '更换连接方式',
++          children: _channelChoices(bg),
++        ),
++        PhoneOptionsFold(
++          title: '更多设置',
++          children: const [PhoneAdvancedSettings()],
++        ),
 +          ],
 +        ),
 +        if (bg.mode != PhoneBackgroundMode.off)
@@ -13467,7 +13484,6 @@ index 00000000..5f82c8ab
 +        ),
 +        if (_error case final error?) PhoneNote(tone: NoteTone.warn, text: error),
 +        if (view == PhoneBackgroundMode.shizuku) ..._shizuku(bg, usable) else ..._adb(bg, usable),
-+        const PhoneAdvancedSettings(),
 +      ],
 +    );
 +  }
