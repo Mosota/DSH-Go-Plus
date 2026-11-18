@@ -431,7 +431,7 @@ index 2fc7cd59..d7d6c73a 100644
          private const val NOTIFY_FIX_ID = 4099
  
 diff --git a/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/phone/PhoneCore.kt b/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/phone/PhoneCore.kt
-index e1c55da9..589b3a04 100644
+index e1c55da9..f96d5cbd 100644
 --- a/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/phone/PhoneCore.kt
 +++ b/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/phone/PhoneCore.kt
 @@ -36,6 +36,23 @@ interface PhoneEnv {
@@ -622,7 +622,7 @@ index e1c55da9..589b3a04 100644
 +        }
 +        if (!guardOn && kind != null && env.shellAskBeforeRun()) {
 +            when (askShellOnce(cmd, kind, scope)) {
-+                Decision.ALLOW_ONCE, Decision.ALLOW_APP_FOR_TASK, Decision.ALLOW_ALL_FOR_TASK,
++                Decision.ALLOW_ONCE, Decision.ALLOW_APP_FOR_TASK,
 +                Decision.ALLOW_VISUAL_FOR_TASK -> Unit
 +
 +                Decision.STOP -> return Out(
