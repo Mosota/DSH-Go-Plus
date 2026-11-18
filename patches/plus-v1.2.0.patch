@@ -5464,7 +5464,7 @@ index 00000000..d61c7c96
 +    }
 +}
 diff --git a/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/RuntimeController.kt b/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/RuntimeController.kt
-index 57e1916e..51dccb65 100644
+index 57e1916e..0a5117f5 100644
 --- a/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/RuntimeController.kt
 +++ b/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/RuntimeController.kt
 @@ -50,6 +50,7 @@ class RuntimeController private constructor(private val app: Context) : DshProce
@@ -5491,7 +5491,7 @@ index 57e1916e..51dccb65 100644
          }
          setPhase(Phase.INSTALLING)
          worker.execute {
-@@ -512,6 +520,17 @@ class RuntimeController private constructor(private val app: Context) : DshProce
+@@ -512,6 +520,18 @@ class RuntimeController private constructor(private val app: Context) : DshProce
                      log("[dsh-app] completed engine cleanup failed: ${e.message}", "system")
                  }
                  noteDns(GuestSetup.writeResolvConf(app, installer.rootfs), DnsConfigSource.START)
@@ -5506,10 +5506,11 @@ index 57e1916e..51dccb65 100644
 +                    "system",
 +                )
 +                probeGuestNetwork()
++                probeGuestNodeFetch(installer.rootfs, env)
                  val storage = pendingPhoneStorage && PhoneStorage.isGranted(app) && PhoneStorage.binds().isNotEmpty()
                  PhoneStorage.syncShortcut(installer.rootfs, storage)
                  // Phone control: bridge up and guest files written before DSH starts; off in safe mode.
-@@ -532,6 +551,45 @@ class RuntimeController private constructor(private val app: Context) : DshProce
+@@ -532,6 +552,49 @@ class RuntimeController private constructor(private val app: Context) : DshProce
                  val env = LinkedHashMap<String, String>()
                  env["TZ"] = java.util.TimeZone.getDefault().id
                  env.putAll(pendingEnv)
@@ -5544,18 +5545,22 @@ index 57e1916e..51dccb65 100644
 +                // 注意：我们用 proroot（libproroot.so）做路径翻译，它本身不隔离网络。
 +                runCatching {
 +                    var existing = env["NODE_OPTIONS"] ?: pendingEnv["NODE_OPTIONS"].orEmpty()
++                    // 重复的 NODE_OPTIONS 赋值在 /usr/bin/env -i 里是"后者覆盖前者"，
++                    // 之前一次启动里出现过两份，容易掩盖真正生效的是哪一份。
 +                    if (!existing.contains("--dns-result-order")) {
 +                        env["NODE_OPTIONS"] = (existing + " --dns-result-order=ipv4first").trim()
 +                        if (pendingEnv["NODE_OPTIONS"] == null) log("[dsh-app] node dns order: ipv4first", "system")
 +                    }
 +                }
 +                // pnpm/npm inside the guest: default to the mirror that actually answers here.
++                env.putIfAbsent("NO_PROXY", "localhost,127.0.0.1,::1")
++                env.putIfAbsent("no_proxy", "localhost,127.0.0.1,::1")
 +                env.putIfAbsent("npm_config_registry", "https://registry.npmmirror.com/")
 +                env.putIfAbsent("NPM_CONFIG_REGISTRY", "https://registry.npmmirror.com/")
                  workspaceRecovery.applyEnvironment(env)
                  PerformancePolicy.applyEngineEnvironment(app, env, manifest.launchArgv, manifest.launchEnv)
                  if (safe) {
-@@ -1154,7 +1212,39 @@ class RuntimeController private constructor(private val app: Context) : DshProce
+@@ -1154,7 +1217,59 @@ class RuntimeController private constructor(private val app: Context) : DshProce
          }
      }
  
@@ -5565,6 +5570,26 @@ index 57e1916e..51dccb65 100644
 +     * 账号登录（Host 侧 fetch DeepSeek）和插件安装失败都是同一类症状，
 +     * 有这一行日志就能判定是"解析失败"还是"连不上 443"，不必再猜。
 +     */
++    /** 用引擎自己的 node 跑一次 fetch：与 python 不同，它走 undici + 我们的 NODE_OPTIONS。 */
++    private fun probeGuestNodeFetch(rootfs: File, env: Map<String, String>) {
++        Thread({
++            val node = File(rootfs, "usr/local/bin/node").takeIf { it.isFile }?.absolutePath
++                ?: File(rootfs, "usr/bin/node").takeIf { it.isFile }?.absolutePath
++                ?: return@Thread
++            val script = "fetch('https://api.deepseek.com/models').then(r=>console.log('NETOK '+r.status)).catch(e=>console.log('NETFAIL '+(e&&e.message)))"
++            val result = runCatching {
++                val pb = ProcessBuilder(node, "-e", script).redirectErrorStream(true)
++                pb.environment().clear()
++                pb.environment().putAll(env)
++                val proc = pb.start()
++                val out = proc.inputStream.bufferedReader().readText().trim()
++                proc.waitFor()
++                out.take(300)
++            }.getOrElse { "error ${it.javaClass.simpleName}: ${it.message}" }
++            log("[dsh-app] node fetch probe: $result", "system")
++        }, "dsh-node-probe").apply { isDaemon = true }.start()
++    }
++
 +    private fun probeGuestNetwork() {
 +        Thread({
 +            for (host in listOf("platform.deepseek.com", "registry.npmmirror.com")) {
