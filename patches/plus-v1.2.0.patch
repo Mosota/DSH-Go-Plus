@@ -4977,7 +4977,7 @@ index 1f74de24..ce180a5d 100644
                  .addAction(Notification.Action.Builder(null, AppStrings.get(context, R.string.service_stop), stop).build())
                  .build()
 diff --git a/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/GuestSetup.kt b/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/GuestSetup.kt
-index 3e902fed..1e90ba00 100644
+index 3e902fed..b1e02340 100644
 --- a/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/GuestSetup.kt
 +++ b/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/GuestSetup.kt
 @@ -29,7 +29,7 @@ object GuestSetup {
@@ -4997,7 +4997,7 @@ index 3e902fed..1e90ba00 100644
                      "\n- 文件工具、会话目录、@ 引用、AGENTS 和 skills 使用同一个完整绝对路径；该路径在 shell 内也同名可见。旧的 `/root` 路径仍可用于文件工具。shell 的输出不改写，不要删除路径的前缀。\n"
                  }
                  directInstructions.replace("`/root/workspace`", "`${rootfs.canonicalPath}/root/workspace`") + pathNote
-@@ -245,12 +246,131 @@ object GuestSetup {
+@@ -245,12 +246,134 @@ object GuestSetup {
  
      /** Up to two of the network's servers, IPv4 first, then the public fallbacks: three in all. */
      fun pickDns(addrs: List<InetAddress>): List<String> {
@@ -5074,8 +5074,11 @@ index 3e902fed..1e90ba00 100644
 +        var written = 0
 +        for (name in names) {
 +            val target = File(dir, name)
++            // 只在缺失时补：新版 rootfs 自带的 direct 模块（尤其 dns.mjs）与它自己的
++            // proot-dns.mjs 是一套，用我们 1.1.0 的副本盖掉会让 node 侧解析失败——
++            // 表现就是引擎里所有 fetch 都 no-response，而 python/glibc 出网正常。
++            if (target.isFile) continue
 +            val bytes = context.assets.open("dshgo/direct/$name").readBytes()
-+            if (target.isFile && target.readBytes().contentEquals(bytes)) continue
 +            target.writeBytes(bytes)
 +            written++
 +        }
