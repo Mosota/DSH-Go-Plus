@@ -176,7 +176,11 @@ class _AppPageState extends State<AppPage> {
     }
     final page = AnnotatedRegion<SystemUiOverlayStyle>(
       value: dshSystemOverlay(theme.brightness),
-      child: AppBackdrop(
+      // 页面自己铺一层不透明底色：转场时下层页面不会透上来（那一下就是"闪烁"）。
+      // 渐变仍由 AppBackdrop 画在这层之上，观感不变。
+      child: ColoredBox(
+        color: DshSurfaces.of(context).backdropTop,
+        child: AppBackdrop(
         child: Scaffold(
           backgroundColor: Colors.transparent,
           body: Stack(
@@ -273,6 +277,7 @@ class _AppPageState extends State<AppPage> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

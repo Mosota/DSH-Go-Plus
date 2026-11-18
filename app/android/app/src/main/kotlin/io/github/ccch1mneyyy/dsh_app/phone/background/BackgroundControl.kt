@@ -118,8 +118,9 @@ class BackgroundControl private constructor(context: Context) {
     @Volatile private var parallelLimit = parallelPrefs.getInt("limit", 1)
     @Volatile private var selectionChange: Any? = null
     private val keepPrefs = app.getSharedPreferences("phone-privileged-keep", Context.MODE_PRIVATE)
+    // 通道保持属于「特权通道」，不跟手机操控的总开关走：关了手机操控，保持照样能恢复。
     private val keep = PrivilegedKeepState(keepPrefs.getString("keptMode", "off") ?: "off",
-        PhoneControl.switchedOn(app), Build.VERSION.SDK_INT >= BackgroundPolicy.MIN_SDK)
+        true, Build.VERSION.SDK_INT >= BackgroundPolicy.MIN_SDK)
     private val recovery = Executors.newSingleThreadExecutor { r -> Thread(r, "dsh-privileged-keep").apply { isDaemon = true } }
     // Pairing from the App and from the notification share one queue: an older attempt can't
     // stop a newer one's discovery, and its result can't replace the newer one's notification.
@@ -1217,7 +1218,6 @@ class BackgroundControl private constructor(context: Context) {
     internal fun changeKeep(selected: String, enabled: Boolean): Pair<PrivilegedKeepState.Ticket?, String?> {
         val failure = when {
             enabled && !androidOk() -> "unsupportedAndroid"
-            enabled && !PhoneControl.switchedOn(app) -> "phoneDisabled"
             else -> null
         }
         if (failure != null) return null to failure
@@ -1234,7 +1234,7 @@ class BackgroundControl private constructor(context: Context) {
     }
 
     /** A previously disabled phone must not revive an old persisted keep on the next process start. */
-    internal fun preparePhoneEnable(): Boolean = PhoneControl.switchedOn(app) || saveKeep(clearKeep())["ok"] == true
+    internal fun preparePhoneEnable(): Boolean = true
 
     internal fun clearKeepForMode(requested: String): PrivilegedKeepState.Ticket? {
         cancelUnwantedPending()
@@ -1277,7 +1277,7 @@ class BackgroundControl private constructor(context: Context) {
 
     /** Foreground/start/BOOT hook; existing explicit keep consent only. */
     fun restoreKeptChannel(): Future<PrivilegedChannel?>? {
-        if (interruptRequested || !PhoneControl.switchedOn(app) || !androidOk() || !keep.enabled) return null
+        if (interruptRequested || !androidOk() || !keep.enabled) return null
         updateKeepListeners()
         synchronized(this) {
             synchronized(keepGuard) {
