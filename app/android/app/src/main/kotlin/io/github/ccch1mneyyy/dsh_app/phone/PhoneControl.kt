@@ -410,6 +410,7 @@ class PhoneControl private constructor(private val app: Context) : PhoneEnv, Con
             "camera" -> K_GUARD_CAMERA
             "microphone" -> K_GUARD_MICROPHONE
             "location" -> K_GUARD_LOCATION
+            "partition" -> K_GUARD_PARTITION
             else -> return true
         },
         true,
@@ -424,6 +425,7 @@ class PhoneControl private constructor(private val app: Context) : PhoneEnv, Con
             "camera" -> K_GUARD_CAMERA
             "microphone" -> K_GUARD_MICROPHONE
             "location" -> K_GUARD_LOCATION
+            "partition" -> K_GUARD_PARTITION
             else -> return false
         }
         prefs.edit().putBoolean(key, allowed).apply()
@@ -917,6 +919,7 @@ class PhoneControl private constructor(private val app: Context) : PhoneEnv, Con
                 "camera" to shellGuardCategory("camera"),
                 "microphone" to shellGuardCategory("microphone"),
                 "location" to shellGuardCategory("location"),
+            "partition" to shellGuardCategory("partition"),
             ),
             "skills" to skillsStatus(),
             "bridgeListening" to bridge.listening,
@@ -1198,6 +1201,7 @@ class PhoneControl private constructor(private val app: Context) : PhoneEnv, Con
         private const val K_GUARD_CAMERA = "shellGuard_camera"
         private const val K_GUARD_MICROPHONE = "shellGuard_microphone"
         private const val K_GUARD_LOCATION = "shellGuard_location"
+        private const val K_GUARD_PARTITION = "shellGuard_partition"
         private const val CHANNEL_FIX = "dsh-phone-fix"
         private const val NOTIFY_FIX_ID = 4099
 

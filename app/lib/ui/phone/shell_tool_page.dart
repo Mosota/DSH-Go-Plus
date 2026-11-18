@@ -24,6 +24,7 @@ const _categories = <(String, String, String)>[
   ('camera', '摄像头', 'appops set … CAMERA、pm grant/revoke …CAMERA、service call … camera'),
   ('microphone', '麦克风', 'appops set … RECORD_AUDIO、pm grant/revoke …RECORD_AUDIO、service call … audio'),
   ('location', '位置', 'appops set … LOCATION、pm grant/revoke …LOCATION'),
+  ('partition', '修改系统分区', 'remount、rw 挂载 /system /vendor /product /boot、dd 写 /dev/block、fastboot flash'),
 ];
 
 class ShellToolPage extends ConsumerWidget {

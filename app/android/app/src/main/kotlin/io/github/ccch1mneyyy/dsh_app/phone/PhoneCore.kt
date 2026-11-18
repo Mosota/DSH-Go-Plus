@@ -461,6 +461,12 @@ class PhoneCore(
         // 位置: appops 改 *LOCATION、pm grant/revoke *LOCATION
         "location" to Regex("""\bappops\s+set\s+\S+\s+\S*LOCATION\S*"""),
         "location" to Regex("""\bpm\s+(grant|revoke)\b[^\n]*\b\S*LOCATION\b"""),
+        // 修改系统分区：remount、rw 挂载系统分区、直接写块设备、fastboot 刷写。
+        "partition" to Regex("""\b(adb|mount|cmd\s+mount|magisk)\b[^\n]*\bremount\b"""),
+        "partition" to Regex("""\bmount\b[^\n]*\brw\b[^\n]*\s/(system|system_ext|vendor|product|odm|boot)\b"""),
+        "partition" to Regex("""\b(dd|cat|cp|install)\b[^\n]*\bof=/dev/block/"""),
+        "partition" to Regex(""">\s*/dev/block/"""),
+        "partition" to Regex("""\bfastboot\b[^\n]*\b(flash|erase|format|set_active)\b"""),
     )
 
     /** 类别中文名：拒绝消息、确认框和页面用同一套说法。 */
@@ -472,6 +478,7 @@ class PhoneCore(
         "camera" -> "摄像头"
         "microphone" -> "麦克风"
         "location" -> "位置"
+        "partition" -> "修改系统分区"
         else -> "敏感"
     }
 
