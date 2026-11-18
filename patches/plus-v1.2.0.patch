@@ -13291,10 +13291,10 @@ index 00000000..24621a18
 +}
 diff --git a/app/lib/ui/phone/privileged_channel_page.dart b/app/lib/ui/phone/privileged_channel_page.dart
 new file mode 100644
-index 00000000..add4ea30
+index 00000000..a2f0992b
 --- /dev/null
 +++ b/app/lib/ui/phone/privileged_channel_page.dart
-@@ -0,0 +1,414 @@
+@@ -0,0 +1,413 @@
 +import 'dart:async';
 +
 +import 'package:flutter/material.dart';
@@ -13467,7 +13467,6 @@ index 00000000..add4ea30
 +              ),
 +            ],
 +          ),
-+        ),
 +        if (_error case final error?) PhoneNote(tone: NoteTone.warn, text: error),
 +        if (view == PhoneBackgroundMode.shizuku) ..._shizuku(bg, usable) else ..._adb(bg, usable),
 +        PhoneOptionsFold(
