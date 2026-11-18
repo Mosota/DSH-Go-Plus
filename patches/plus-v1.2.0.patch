@@ -12792,18 +12792,20 @@ index 3a23e526..5cae94ad 100644
            ],
          ),
 diff --git a/app/lib/ui/phone/phone_control_screen.dart b/app/lib/ui/phone/phone_control_screen.dart
-index fc641e25..d307d891 100644
+index fc641e25..7df5726f 100644
 --- a/app/lib/ui/phone/phone_control_screen.dart
 +++ b/app/lib/ui/phone/phone_control_screen.dart
-@@ -14,7 +14,6 @@ import '../../state/hosts_state.dart';
+@@ -13,8 +13,8 @@ import '../../state/android_features.dart';
+ import '../../state/hosts_state.dart';
  import '../../state/ios_phone_link_state.dart';
  import '../../state/phone_overlay_prefs.dart';
- import '../../state/phone_state.dart';
--import '../../state/phone_turn_end.dart';
+-import '../../state/phone_state.dart';
+ import '../../state/phone_turn_end.dart';
++import '../../state/phone_state.dart';
  import '../common/app_sheet.dart';
  import '../common/app_dialog.dart';
  import '../common/ask_ai.dart';
-@@ -31,7 +30,6 @@ import '../shell/page_frame.dart';
+@@ -31,7 +31,6 @@ import '../shell/page_frame.dart';
  import '../theme/app_icons.dart';
  import '../theme/theme.dart';
  import 'action_log_page.dart';
@@ -12811,7 +12813,7 @@ index fc641e25..d307d891 100644
  import 'a11y_restore_sheet.dart';
  import 'always_allow_page.dart';
  import 'app_rules_page.dart';
-@@ -505,13 +503,23 @@ class _PhoneControlScreenState extends ConsumerState<PhoneControlScreen> {
+@@ -505,13 +504,23 @@ class _PhoneControlScreenState extends ConsumerState<PhoneControlScreen> {
              ..._rules(state),
              gap,
              if (status.enabled) ...[
@@ -12839,7 +12841,7 @@ index fc641e25..d307d891 100644
                    ),
                  ],
                ),
-@@ -528,7 +536,6 @@ class _PhoneControlScreenState extends ConsumerState<PhoneControlScreen> {
+@@ -528,7 +537,6 @@ class _PhoneControlScreenState extends ConsumerState<PhoneControlScreen> {
                ].any((spot) => spot.id == targetSpot),
                children: [
                  if (status.enabled) ...[
@@ -12847,7 +12849,7 @@ index fc641e25..d307d891 100644
                    gap,
                    ListPageCard(
                      children: [
-@@ -568,17 +575,6 @@ class _PhoneControlScreenState extends ConsumerState<PhoneControlScreen> {
+@@ -568,17 +576,6 @@ class _PhoneControlScreenState extends ConsumerState<PhoneControlScreen> {
                  _localOcr(state),
                  if (status.skills.available) ...[gap, PhoneSkillSection(status: status.skills)],
                  gap,
@@ -12865,7 +12867,7 @@ index fc641e25..d307d891 100644
                  _recentActions(state),
                ],
              ),
-@@ -901,6 +897,8 @@ class _PhoneControlScreenState extends ConsumerState<PhoneControlScreen> {
+@@ -901,6 +898,8 @@ class _PhoneControlScreenState extends ConsumerState<PhoneControlScreen> {
            ),
          ],
        ),
@@ -13896,27 +13898,28 @@ index 00000000..3808464a
 +  }
 +}
 diff --git a/app/lib/ui/settings/index/settings_pages.dart b/app/lib/ui/settings/index/settings_pages.dart
-index 2e0fe1bb..d44192b8 100644
+index 2e0fe1bb..271dac41 100644
 --- a/app/lib/ui/settings/index/settings_pages.dart
 +++ b/app/lib/ui/settings/index/settings_pages.dart
-@@ -14,11 +14,10 @@ import '../../features/agent_presets_page.dart';
+@@ -14,11 +14,12 @@ import '../../features/agent_presets_page.dart';
  import '../../features/all_features_page.dart';
  import '../../features/permission_page.dart';
  import '../../pets/pet_settings_page.dart';
 -import '../../phone/always_allow_page.dart';
 -import '../../phone/android_shell_page.dart';
  import '../../phone/app_rules_page.dart';
++import '../../phone/always_allow_page.dart';
++import '../../phone/ball_settings_page.dart';
  import '../../phone/dnd_mode_page.dart';
  import '../../phone/phone_control_screen.dart';
 +import '../../phone/phone_extra_page.dart';
  import '../../phone/phone_unlock_page.dart';
  import '../../phone/system_actions_page.dart';
  import '../../plugins/plugin_inventory_page.dart';
-@@ -61,9 +60,9 @@ Widget settingsPage(SettingsPageId id, {String? sessionId}) => switch (id) {
-   SettingsPageId.sharedLinks => const HostedLinksPage(),
+@@ -62,8 +63,9 @@ Widget settingsPage(SettingsPageId id, {String? sessionId}) => switch (id) {
    SettingsPageId.phone => const PhoneControlScreen(),
    SettingsPageId.phoneAppRules => const PhoneAppRulesPage(),
--  SettingsPageId.phoneAlwaysAllow => const PhoneAlwaysAllowPage(),
+   SettingsPageId.phoneAlwaysAllow => const PhoneAlwaysAllowPage(),
 -  SettingsPageId.phoneAndroidShell => const AndroidShellPage(),
 +  SettingsPageId.phoneAndroidShell => const PhoneExtraPage(),
    SettingsPageId.phoneDnd => const PhoneDndPage(),
