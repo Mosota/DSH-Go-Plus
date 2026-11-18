@@ -195,6 +195,7 @@ class ShizukuStatus {
     this.granted = false,
     this.provider,
     this.appInstalled,
+    this.connectReason,
   });
 
   factory ShizukuStatus.fromMap(Map<Object?, Object?> m) => ShizukuStatus(
@@ -203,6 +204,7 @@ class ShizukuStatus {
     granted: _flag(m['granted']),
     provider: const ['shizuku', 'sui'].contains(m['provider']) ? m['provider'] as String : null,
     appInstalled: _maybeFlag(m['appInstalled']),
+    connectReason: _text(m['connectReason']),
   );
 
   final bool installed;
@@ -210,6 +212,9 @@ class ShizukuStatus {
   final bool granted;
   final String? provider;
   final bool? appInstalled;
+
+  /// 最近一次连接失败停在哪个阶段（bindTimeout / probeRejected / protocolMismatch …）。
+  final String? connectReason;
 }
 
 class AdbStatus {

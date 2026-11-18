@@ -281,7 +281,7 @@ class BackgroundControl private constructor(context: Context) {
             ),
             "androidOk" to androidOk(),
             "viewport" to mapOf("v" to 1, "preset" to viewport.preset),
-            "shizuku" to shizukuStatus.map(),
+            "shizuku" to (shizukuStatus.map() + mapOf("connectReason" to shizuku.connectReasonCode)),
             "adb" to adbStatus.map(),
             "root" to rootStatus.map(),
             "privileged" to mapOf(
@@ -333,8 +333,12 @@ class BackgroundControl private constructor(context: Context) {
     /** A kept channel that is down, or the last connection failure while no channel is live. */
     private fun connectionReason(): String? {
         if (channel?.alive() == true) return null
+        // 先报这次连接失败的具体原因（bindTimeout / probeRejected / protocolMismatch …）：
+        // 一句笼统的「未就绪」看不出是哪一步，页面就只能干等。
+        gate.snapshot.connectionError?.let { return AppStrings.get(app, it) }
+        shizuku.connectReasonCode?.let { return "连接失败：$it" }
         if (keep.connectionUnavailable(false)) return AppStrings.get(app, R.string.background_not_ready)
-        return gate.snapshot.connectionError?.let { AppStrings.get(app, it) }
+        return null
     }
 
     /** A failed connection attempt: the starter's own stage, never a capability verdict. */

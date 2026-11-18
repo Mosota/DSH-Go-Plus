@@ -130,11 +130,7 @@ class _PhonePrivilegedPageState extends ConsumerState<PhonePrivilegedPage> {
                 icon: AppIcons.dndMode,
                 iconColor: Theme.of(context).colorScheme.primary,
                 title: bg.mode == PhoneBackgroundMode.shizuku ? l10n.phoneDndUsing('Shizuku') : l10n.phoneDndUsing('自连 ADB'),
-                subtitle: bg.ready
-                    ? l10n.phoneReady
-                    : bg.selectionPendingMs > 0
-                        ? '正在连接通道（已 ${(bg.selectionPendingMs / 1000).round()} 秒）…点「重新检查此通道」可重试'
-                        : (bg.reason ?? l10n.phoneNotReadyYet),
+                subtitle: _usingSubtitle(bg, l10n),
                 trailing: TextButton(
                   onPressed: _busy ? null : () => _setMode(PhoneBackgroundMode.off),
                   child: Text(l10n.commonClose),
@@ -161,6 +157,18 @@ class _PhonePrivilegedPageState extends ConsumerState<PhonePrivilegedPage> {
         const PhoneAdvancedSettings(),
       ],
     );
+  }
+
+  /// 使用中卡片下面那行：优先显示连接失败的具体阶段，其次显示等待秒数，最后才是笼统原因。
+  String _usingSubtitle(PhoneBackgroundStatus bg, L10n l10n) {
+    if (bg.ready) return l10n.phoneReady;
+    final code = bg.shizuku.connectReason;
+    if (code != null && code.isNotEmpty) return '连接失败：$code（点「重新检查此通道」重试）';
+    if (bg.selectionPendingMs > 0) {
+      final seconds = (bg.selectionPendingMs / 1000).round();
+      return '正在连接通道（已 $seconds 秒）…点「重新检查此通道」可重试';
+    }
+    return bg.reason ?? l10n.phoneNotReadyYet;
   }
 
   List<Widget> _shizuku(PhoneBackgroundStatus bg, bool usable) {
