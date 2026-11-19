@@ -11444,7 +11444,7 @@ index 00000000..52f4ff08
 +      old.color != color || old.stroke != stroke || old.phase != phase;
 +}
 diff --git a/app/lib/ui/chat/widgets/attachments.dart b/app/lib/ui/chat/widgets/attachments.dart
-index dcbb4583..a967e1a5 100644
+index dcbb4583..1dc71882 100644
 --- a/app/lib/ui/chat/widgets/attachments.dart
 +++ b/app/lib/ui/chat/widgets/attachments.dart
 @@ -462,20 +462,28 @@ Future<void> openImageViewer(BuildContext context, ImageProvider image, {require
@@ -11456,6 +11456,7 @@ index dcbb4583..a967e1a5 100644
    if (images.isEmpty) return Future.value();
    // Returning from a picture must not restore the composer's hidden keyboard.
    FocusManager.instance.primaryFocus?.unfocus();
+-  return Navigator.of(context).push(
 +  // 先把要打开的那张图解码好再进页面：否则页面第一帧只有黑底，看起来就是"黑一下"。
 +  final first = images[initialPage.clamp(0, images.length - 1)];
 +  try {
@@ -11464,8 +11465,8 @@ index dcbb4583..a967e1a5 100644
 +  } catch (_) {
 +    // 解码失败时照常打开：页面里有失败占位。
 +  }
-+  if (!context.mounted) return Future.value();
-   return Navigator.of(context).push(
++  if (!context.mounted) return;
++  await Navigator.of(context).push(
 +    // 不透明路由 + 纯黑底，页面本身不再做整体淡入：淡入淡出会让整屏亮度跟着变，
 +    // 翻页时看起来就是"突然黑一下"。图片的进出由 Hero 负责，页面切换本身是瞬时的。
      PageRouteBuilder<void>(
