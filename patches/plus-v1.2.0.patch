@@ -11444,7 +11444,7 @@ index 00000000..52f4ff08
 +      old.color != color || old.stroke != stroke || old.phase != phase;
 +}
 diff --git a/app/lib/ui/chat/widgets/attachments.dart b/app/lib/ui/chat/widgets/attachments.dart
-index dcbb4583..1dc71882 100644
+index dcbb4583..b8f3fc49 100644
 --- a/app/lib/ui/chat/widgets/attachments.dart
 +++ b/app/lib/ui/chat/widgets/attachments.dart
 @@ -462,20 +462,28 @@ Future<void> openImageViewer(BuildContext context, ImageProvider image, {require
@@ -11452,8 +11452,9 @@ index dcbb4583..1dc71882 100644
  
  /// Pictures of one draft/message, including stored pictures not loaded yet.
 -Future<void> openAttachmentGallery(BuildContext context, List<ViewerImage> images, {int initialPage = 0}) {
+-  if (images.isEmpty) return Future.value();
 +Future<void> openAttachmentGallery(BuildContext context, List<ViewerImage> images, {int initialPage = 0}) async {
-   if (images.isEmpty) return Future.value();
++  if (images.isEmpty) return;
    // Returning from a picture must not restore the composer's hidden keyboard.
    FocusManager.instance.primaryFocus?.unfocus();
 -  return Navigator.of(context).push(
