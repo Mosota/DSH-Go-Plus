@@ -14552,21 +14552,15 @@ index 08e7db05..5f88727b 100644
                ),
                Positioned(
 diff --git a/app/lib/ui/theme/page_transitions.dart b/app/lib/ui/theme/page_transitions.dart
-index 7fee925e..fa6af0c1 100644
+index 7fee925e..91b10ef2 100644
 --- a/app/lib/ui/theme/page_transitions.dart
 +++ b/app/lib/ui/theme/page_transitions.dart
-@@ -47,13 +47,15 @@ class AppPageTransitionsBuilder extends PageTransitionsBuilder {
- 
-   final Duration _duration;
- 
-+  /// 零时长：二级页瞬时切换，不再有任何"页面在动"的过程——淡入、位移、缩放、压黑
-+  /// 这些都会让整屏或局部颜色在动画里变一下，也就是反复出现的"闪烁/轻微变色"。
-+  /// 返回手势仍然可用（它不依赖时长）。
+@@ -50,10 +50,10 @@ class AppPageTransitionsBuilder extends PageTransitionsBuilder {
    @override
--  Duration get transitionDuration => _duration;
-+  Duration get transitionDuration => Duration.zero;
+   Duration get transitionDuration => _duration;
  
-+  /// 被压住的下层页面保持原样：之前它会跟着位移并变暗，返回时就是"轻微变色"的来源。
++  /// 被压住的下层页面保持原样：它跟着位移/变暗会让返回时看起来"变色"，
++  /// 而这条与动画本身无关，去掉不影响新页面的滑入。
    @override
 -  DelegatedTransitionBuilder? get delegatedTransition =>
 -      (context, animation, secondaryAnimation, allowSnapshotting, child) =>
@@ -14575,14 +14569,15 @@ index 7fee925e..fa6af0c1 100644
  
    @override
    Widget buildTransitions<T>(
-@@ -63,21 +65,7 @@ class AppPageTransitionsBuilder extends PageTransitionsBuilder {
-     Animation<double> secondaryAnimation,
+@@ -64,19 +64,11 @@ class AppPageTransitionsBuilder extends PageTransitionsBuilder {
      Widget child,
    ) {
--    final linear = route.popGestureInProgress;
+     final linear = route.popGestureInProgress;
 -    final origin = CardOrigin._claim(route);
--    return _BackGesture(
--      route: route,
++    // 新页面从右侧滑入（iOS 风格），下层页面保持静止、不变暗——
++    // 过渡动画保留，但没有任何整屏亮度变化。
+     return _BackGesture(
+       route: route,
 -      child: SheetRecedePage(
 -        child: _Recede(
 -          animation: secondaryAnimation,
@@ -14593,12 +14588,11 @@ index 7fee925e..fa6af0c1 100644
 -              : _CardMorph(animation: animation, linear: linear, origin: origin, child: child),
 -        ),
 -      ),
--    );
-+    return _BackGesture(route: route, child: child);
++      child: _PushIn(animation: animation, linear: linear, child: child),
+     );
    }
  }
- 
-@@ -194,7 +182,6 @@ class _CardMorphState extends State<_CardMorph> {
+@@ -194,7 +186,6 @@ class _CardMorphState extends State<_CardMorph> {
  
    @override
    Widget build(BuildContext context) {
@@ -14606,7 +14600,7 @@ index 7fee925e..fa6af0c1 100644
      final origin = widget.origin;
      return LayoutBuilder(
        builder: (context, constraints) {
-@@ -209,9 +196,7 @@ class _CardMorphState extends State<_CardMorph> {
+@@ -209,9 +200,7 @@ class _CardMorphState extends State<_CardMorph> {
              return Stack(
                fit: StackFit.expand,
                children: [
@@ -14617,7 +14611,7 @@ index 7fee925e..fa6af0c1 100644
                  Transform(
                    transform: Matrix4.identity()
                      ..translateByDouble(rect.left, rect.top, 0, 1)
-@@ -401,7 +386,6 @@ class _RecedeState extends State<_Recede> {
+@@ -401,7 +390,6 @@ class _RecedeState extends State<_Recede> {
  
    @override
    Widget build(BuildContext context) {
@@ -14625,7 +14619,7 @@ index 7fee925e..fa6af0c1 100644
      final Animation<double> motion = CardOrigin._covered(widget.route) ? kAlwaysDismissedAnimation : _curved;
      return SlideTransition(
        position: Tween<Offset>(begin: Offset.zero, end: const Offset(-0.25, 0)).animate(motion),
-@@ -411,14 +395,8 @@ class _RecedeState extends State<_Recede> {
+@@ -411,14 +399,8 @@ class _RecedeState extends State<_Recede> {
          fit: StackFit.passthrough,
          children: [
            SnapshotWidget(controller: _snapshot, mode: SnapshotMode.permissive, autoresize: true, child: widget.child),
