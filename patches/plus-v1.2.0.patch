@@ -14493,22 +14493,19 @@ index f48b78e3..2c84a81d 100644
          ),
          SettingsSection(
 diff --git a/app/lib/ui/shell/page_frame.dart b/app/lib/ui/shell/page_frame.dart
-index 08e7db05..e51c11c1 100644
+index 08e7db05..3cdca76e 100644
 --- a/app/lib/ui/shell/page_frame.dart
 +++ b/app/lib/ui/shell/page_frame.dart
-@@ -176,14 +176,18 @@ class _AppPageState extends State<AppPage> {
+@@ -176,6 +176,8 @@ class _AppPageState extends State<AppPage> {
      }
      final page = AnnotatedRegion<SystemUiOverlayStyle>(
        value: dshSystemOverlay(theme.brightness),
--      child: AppBackdrop(
-+      // 页面自己铺一层不透明底色：转场时下层页面不会透上来（那一下就是"闪烁"）。
-+      // 渐变仍由 AppBackdrop 画在这层之上，观感不变。
-+      child: ColoredBox(
-+        color: DshSurfaces.of(context).backdropTop,
-+        child: AppBackdrop(
++      // 这层不透明底色已经撤掉：它是纯色（backdropTop），和真正的竖向渐变有细微色差，
++      // 返回时若只重画了底色就会看到"轻微变色"。渐变仍由 AppBackdrop 负责。
+       child: AppBackdrop(
          child: Scaffold(
            backgroundColor: Colors.transparent,
-           body: Stack(
+@@ -183,7 +185,7 @@ class _AppPageState extends State<AppPage> {
              children: [
                CustomScrollView(
                  controller: _controller,
@@ -14517,7 +14514,7 @@ index 08e7db05..e51c11c1 100644
                  slivers: [
                    SliverToBoxAdapter(child: SizedBox(height: top)),
                    if (header != null)
-@@ -203,7 +207,9 @@ class _AppPageState extends State<AppPage> {
+@@ -203,7 +205,9 @@ class _AppPageState extends State<AppPage> {
                                child: child,
                              ),
                            ),
@@ -14528,7 +14525,7 @@ index 08e7db05..e51c11c1 100644
                          ),
                        ),
                      ),
-@@ -222,7 +228,9 @@ class _AppPageState extends State<AppPage> {
+@@ -222,7 +226,9 @@ class _AppPageState extends State<AppPage> {
                    // Only once content is under the bar: at rest it would just
                    // tint the glow.
                    builder: (context, offset, child) => Opacity(opacity: (offset / 24).clamp(0.0, 1.0), child: child),
@@ -14539,14 +14536,6 @@ index 08e7db05..e51c11c1 100644
                  ),
                ),
                Positioned(
-@@ -274,6 +282,7 @@ class _AppPageState extends State<AppPage> {
-             ],
-           ),
-         ),
-+        ),
-       ),
-     );
-     return UiTrace(scope: 'page', child: page);
 diff --git a/app/lib/ui/theme/page_transitions.dart b/app/lib/ui/theme/page_transitions.dart
 index 7fee925e..fa6af0c1 100644
 --- a/app/lib/ui/theme/page_transitions.dart
@@ -15223,21 +15212,6 @@ index e729aeb9..aaf70995 100644
      });
    });
  
-diff --git a/examples/plugins/e2e/host-e2e.sh b/examples/plugins/e2e/host-e2e.sh
-old mode 100755
-new mode 100644
-diff --git a/infra/forum/scripts/apply.sh b/infra/forum/scripts/apply.sh
-old mode 100755
-new mode 100644
-diff --git a/infra/forum/scripts/install_theme.sh b/infra/forum/scripts/install_theme.sh
-old mode 100755
-new mode 100644
-diff --git a/packages/dsh_remote/tool/e2e/p2p_emulator.sh b/packages/dsh_remote/tool/e2e/p2p_emulator.sh
-old mode 100755
-new mode 100644
-diff --git a/packages/dsh_remote/tool/e2e/run_e2e.sh b/packages/dsh_remote/tool/e2e/run_e2e.sh
-old mode 100755
-new mode 100644
 diff --git a/runtime/direct/dns.mjs b/runtime/direct/dns.mjs
 index a42016b1..0678ba93 100644
 --- a/runtime/direct/dns.mjs
@@ -15261,48 +15235,6 @@ index a42016b1..0678ba93 100644
            families = families.filter((value) => available.has(value));
          }
        } catch { /* retain both families when Android denies interface enumeration */ }
-diff --git a/runtime/tests/direct/run-tests.sh b/runtime/tests/direct/run-tests.sh
-old mode 100755
-new mode 100644
-diff --git a/runtime/tests/run-native-tests.sh b/runtime/tests/run-native-tests.sh
-old mode 100755
-new mode 100644
-diff --git a/sdk/plugin-kit/bin/check.mjs b/sdk/plugin-kit/bin/check.mjs
-old mode 100755
-new mode 100644
-diff --git a/sdk/plugin-kit/scripts/wire-check.sh b/sdk/plugin-kit/scripts/wire-check.sh
-old mode 100755
-new mode 100644
-diff --git a/services/share-worker/scripts/beta-keys.sh b/services/share-worker/scripts/beta-keys.sh
-old mode 100755
-new mode 100644
-diff --git a/services/share-worker/scripts/github-downloads.sh b/services/share-worker/scripts/github-downloads.sh
-old mode 100755
-new mode 100644
-diff --git a/services/share-worker/scripts/provision.sh b/services/share-worker/scripts/provision.sh
-old mode 100755
-new mode 100644
-diff --git a/services/share-worker/scripts/publish-release.sh b/services/share-worker/scripts/publish-release.sh
-old mode 100755
-new mode 100644
-diff --git a/services/share-worker/scripts/stats-report.py b/services/share-worker/scripts/stats-report.py
-old mode 100755
-new mode 100644
-diff --git a/services/share-worker/scripts/stats.sh b/services/share-worker/scripts/stats.sh
-old mode 100755
-new mode 100644
-diff --git a/services/share-worker/test/publish-fakes/coscli b/services/share-worker/test/publish-fakes/coscli
-old mode 100755
-new mode 100644
-diff --git a/services/share-worker/test/publish-fakes/forbidden b/services/share-worker/test/publish-fakes/forbidden
-old mode 100755
-new mode 100644
-diff --git a/services/share-worker/test/publish-fakes/gh b/services/share-worker/test/publish-fakes/gh
-old mode 100755
-new mode 100644
-diff --git a/services/share-worker/test/publish-fakes/ossutil b/services/share-worker/test/publish-fakes/ossutil
-old mode 100755
-new mode 100644
 diff --git a/skills/dsh-go-maintain/scripts/comment_guard.py b/skills/dsh-go-maintain/scripts/comment_guard.py
 new file mode 100644
 index 00000000..e38b6174
