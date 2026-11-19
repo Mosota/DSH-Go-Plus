@@ -11444,27 +11444,64 @@ index 00000000..52f4ff08
 +      old.color != color || old.stroke != stroke || old.phase != phase;
 +}
 diff --git a/app/lib/ui/chat/widgets/attachments.dart b/app/lib/ui/chat/widgets/attachments.dart
-index dcbb4583..e2f42f00 100644
+index dcbb4583..3930f184 100644
 --- a/app/lib/ui/chat/widgets/attachments.dart
 +++ b/app/lib/ui/chat/widgets/attachments.dart
-@@ -469,7 +469,6 @@ Future<void> openAttachmentGallery(BuildContext context, List<ViewerImage> image
+@@ -467,15 +467,14 @@ Future<void> openAttachmentGallery(BuildContext context, List<ViewerImage> image
+   // Returning from a picture must not restore the composer's hidden keyboard.
+   FocusManager.instance.primaryFocus?.unfocus();
    return Navigator.of(context).push(
++    // 不透明路由 + 纯黑底，页面本身不再做整体淡入：淡入淡出会让整屏亮度跟着变，
++    // 翻页时看起来就是"突然黑一下"。图片的进出由 Hero 负责，页面切换本身是瞬时的。
      PageRouteBuilder<void>(
-       opaque: false,
+-      opaque: false,
 -      barrierColor: Colors.black.withValues(alpha: 0.92),
++      opaque: true,
        transitionDuration: AppMotion.of(context, AppMotion.standard),
        reverseTransitionDuration: AppMotion.of(context, AppMotion.quick),
-       pageBuilder: (context, animation, _) => FadeTransition(
-@@ -553,7 +552,8 @@ class _ImageViewerState extends State<_ImageViewer> {
+-      pageBuilder: (context, animation, _) => FadeTransition(
+-        opacity: animation,
+-        child: _ImageViewer(images: List.unmodifiable(images), initialPage: initialPage.clamp(0, images.length - 1)),
+-      ),
++      pageBuilder: (context, animation, _) =>
++          _ImageViewer(images: List.unmodifiable(images), initialPage: initialPage.clamp(0, images.length - 1)),
+     ),
+   );
+ }
+@@ -532,6 +531,8 @@ class _ImageViewerState extends State<_ImageViewer> {
+             key: ValueKey('attachment-gallery-image-$index'),
+             image: image,
+             fit: BoxFit.contain,
++            // 换图时先保留上一帧，等新图解码完再替换，避免中间出现空白/黑屏。
++            gaplessPlayback: true,
+             errorBuilder: (_, _, _) => _placeholder(index, failed: true),
+           ),
+         );
+@@ -553,7 +554,8 @@ class _ImageViewerState extends State<_ImageViewer> {
      return Theme(
        data: buildDarkTheme(accent: DshSurfaces.of(context).accent, glassBlur: DshSurfaces.of(context).blurEnabled),
        child: Scaffold(
 -        backgroundColor: Colors.transparent,
 +        // 黑纱画在页面上，跟页面一起淡入淡出；原来放在路由 barrier 上会先亮一下再变暗。
-+        backgroundColor: Colors.black.withValues(alpha: 0.92),
++        backgroundColor: Colors.black,
          body: AnnotatedRegion<SystemUiOverlayStyle>(
            value: SystemUiOverlayStyle.light.copyWith(
              statusBarColor: Colors.transparent,
+diff --git a/app/lib/ui/chat/widgets/image_gallery.dart b/app/lib/ui/chat/widgets/image_gallery.dart
+index 1d1537a0..3f6ec828 100644
+--- a/app/lib/ui/chat/widgets/image_gallery.dart
++++ b/app/lib/ui/chat/widgets/image_gallery.dart
+@@ -66,7 +66,9 @@ class _ImagePagerState extends State<ImagePager> {
+     },
+     itemBuilder: (context, index) => ZoomableImage(
+       // A page becoming inactive also forgets its previous transform.
+-      key: ValueKey((index, index == _index)),
++      // 每页用固定 key：原来带上"是否当前页"，翻页时整页会被重建、图片重新解码，
++      // 中间那一帧就是黑的（用户看到的"翻页突然黑一下"）。缩放状态由 active 复位。
++      key: ValueKey(index),
+       onTap: widget.onTap,
+       tapWhenZoomed: widget.tapWhenZoomed,
+       onLongPress: widget.onLongPress == null ? null : () => widget.onLongPress!(index),
 diff --git a/app/lib/ui/chat/widgets/message_time.dart b/app/lib/ui/chat/widgets/message_time.dart
 new file mode 100644
 index 00000000..88234c2d
@@ -13167,10 +13204,10 @@ index fc641e25..7df5726f 100644
  
 diff --git a/app/lib/ui/phone/phone_extra_page.dart b/app/lib/ui/phone/phone_extra_page.dart
 new file mode 100644
-index 00000000..24621a18
+index 00000000..6e7f6aa0
 --- /dev/null
 +++ b/app/lib/ui/phone/phone_extra_page.dart
-@@ -0,0 +1,118 @@
+@@ -0,0 +1,120 @@
 +import 'dart:async';
 +
 +import 'package:flutter/material.dart';
@@ -13201,7 +13238,9 @@ index 00000000..24621a18
 +    final phone = ref.read(phoneProvider.notifier);
 +    final bg = status.background;
 +    final keep = ref.watch(keepAlivePrefsProvider);
-+    final channelReady = bg.mode != PhoneBackgroundMode.off && bg.ready;
++    // 用 effectiveMode/effectiveReady：root 这类通道在 legacy 的 mode 里会显示成 off，
++    // 按 mode 判断会把已经就绪的 root 当成没开，和上面「Root · 已就绪」自相矛盾。
++    final channelReady = bg.effectiveMode != PhonePrivilegedMode.off && bg.effectiveReady;
 +    return AppPage.list(
 +      title: '特权通道与工具',
 +      children: [
@@ -13291,10 +13330,10 @@ index 00000000..24621a18
 +}
 diff --git a/app/lib/ui/phone/privileged_channel_page.dart b/app/lib/ui/phone/privileged_channel_page.dart
 new file mode 100644
-index 00000000..a2f0992b
+index 00000000..d1d8163d
 --- /dev/null
 +++ b/app/lib/ui/phone/privileged_channel_page.dart
-@@ -0,0 +1,413 @@
+@@ -0,0 +1,414 @@
 +import 'dart:async';
 +
 +import 'package:flutter/material.dart';
@@ -13468,15 +13507,16 @@ index 00000000..a2f0992b
 +            ],
 +          ),
 +        if (_error case final error?) PhoneNote(tone: NoteTone.warn, text: error),
-+        if (view == PhoneBackgroundMode.shizuku) ..._shizuku(bg, usable) else ..._adb(bg, usable),
 +        PhoneOptionsFold(
 +          title: '更换连接方式',
-+          children: _channelChoices(bg),
++          children: [ListPageCard(margin: _groupMargin, children: _channelChoices(bg))],
 +        ),
 +        PhoneOptionsFold(
 +          title: '更多设置',
 +          children: const [PhoneAdvancedSettings()],
 +        ),
++        if (bg.effectiveMode == PhonePrivilegedMode.shizuku || bg.effectiveMode == PhonePrivilegedMode.adb)
++          if (view == PhoneBackgroundMode.shizuku) ..._shizuku(bg, usable) else ..._adb(bg, usable),
 +      ],
 +    );
 +  }
