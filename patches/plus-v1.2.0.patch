@@ -14493,10 +14493,25 @@ index f48b78e3..2c84a81d 100644
          ),
          SettingsSection(
 diff --git a/app/lib/ui/shell/page_frame.dart b/app/lib/ui/shell/page_frame.dart
-index 08e7db05..3cdca76e 100644
+index 08e7db05..5f88727b 100644
 --- a/app/lib/ui/shell/page_frame.dart
 +++ b/app/lib/ui/shell/page_frame.dart
-@@ -176,6 +176,8 @@ class _AppPageState extends State<AppPage> {
+@@ -106,6 +106,14 @@ class _AppPageState extends State<AppPage> {
+   void initState() {
+     super.initState();
+     _controller.addListener(() => _offset.value = _controller.hasClients ? _controller.offset : 0.0);
++    // 页面被二级页盖住再回来时，控制器已有位置但通知器还停在旧值：第一帧按 0 画顶部遮罩，
++    // 第二帧才跳到真实值——这就是返回一级页时"轻微变色"的来源。挂第一帧后同步一次，
++    // 并在每次依赖变化时再同步，保证首帧就是正确的不透明度。
++    WidgetsBinding.instance.addPostFrameCallback((_) {
++      if (mounted && _controller.hasClients && _offset.value != _controller.offset) {
++        _offset.value = _controller.offset;
++      }
++    });
+     // Opened for one row (a search result, a row link): bring it into view.
+     WidgetsBinding.instance.addPostFrameCallback((_) {
+       if (mounted) unawaited(seekSpot(context, _controller));
+@@ -176,6 +184,8 @@ class _AppPageState extends State<AppPage> {
      }
      final page = AnnotatedRegion<SystemUiOverlayStyle>(
        value: dshSystemOverlay(theme.brightness),
@@ -14505,7 +14520,7 @@ index 08e7db05..3cdca76e 100644
        child: AppBackdrop(
          child: Scaffold(
            backgroundColor: Colors.transparent,
-@@ -183,7 +185,7 @@ class _AppPageState extends State<AppPage> {
+@@ -183,7 +193,7 @@ class _AppPageState extends State<AppPage> {
              children: [
                CustomScrollView(
                  controller: _controller,
@@ -14514,7 +14529,7 @@ index 08e7db05..3cdca76e 100644
                  slivers: [
                    SliverToBoxAdapter(child: SizedBox(height: top)),
                    if (header != null)
-@@ -203,7 +205,9 @@ class _AppPageState extends State<AppPage> {
+@@ -203,7 +213,9 @@ class _AppPageState extends State<AppPage> {
                                child: child,
                              ),
                            ),
@@ -14525,7 +14540,7 @@ index 08e7db05..3cdca76e 100644
                          ),
                        ),
                      ),
-@@ -222,7 +226,9 @@ class _AppPageState extends State<AppPage> {
+@@ -222,7 +234,9 @@ class _AppPageState extends State<AppPage> {
                    // Only once content is under the bar: at rest it would just
                    // tint the glow.
                    builder: (context, offset, child) => Opacity(opacity: (offset / 24).clamp(0.0, 1.0), child: child),
