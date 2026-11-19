@@ -11444,12 +11444,27 @@ index 00000000..52f4ff08
 +      old.color != color || old.stroke != stroke || old.phase != phase;
 +}
 diff --git a/app/lib/ui/chat/widgets/attachments.dart b/app/lib/ui/chat/widgets/attachments.dart
-index dcbb4583..3930f184 100644
+index dcbb4583..a967e1a5 100644
 --- a/app/lib/ui/chat/widgets/attachments.dart
 +++ b/app/lib/ui/chat/widgets/attachments.dart
-@@ -467,15 +467,14 @@ Future<void> openAttachmentGallery(BuildContext context, List<ViewerImage> image
+@@ -462,20 +462,28 @@ Future<void> openImageViewer(BuildContext context, ImageProvider image, {require
+     openAttachmentGallery(context, [ViewerImage(name: name ?? '', image: image, heroTag: heroTag)]);
+ 
+ /// Pictures of one draft/message, including stored pictures not loaded yet.
+-Future<void> openAttachmentGallery(BuildContext context, List<ViewerImage> images, {int initialPage = 0}) {
++Future<void> openAttachmentGallery(BuildContext context, List<ViewerImage> images, {int initialPage = 0}) async {
+   if (images.isEmpty) return Future.value();
    // Returning from a picture must not restore the composer's hidden keyboard.
    FocusManager.instance.primaryFocus?.unfocus();
++  // 先把要打开的那张图解码好再进页面：否则页面第一帧只有黑底，看起来就是"黑一下"。
++  final first = images[initialPage.clamp(0, images.length - 1)];
++  try {
++    final provider = first.image ?? await first.load!();
++    await precacheImage(provider, context);
++  } catch (_) {
++    // 解码失败时照常打开：页面里有失败占位。
++  }
++  if (!context.mounted) return Future.value();
    return Navigator.of(context).push(
 +    // 不透明路由 + 纯黑底，页面本身不再做整体淡入：淡入淡出会让整屏亮度跟着变，
 +    // 翻页时看起来就是"突然黑一下"。图片的进出由 Hero 负责，页面切换本身是瞬时的。
@@ -11468,7 +11483,7 @@ index dcbb4583..3930f184 100644
      ),
    );
  }
-@@ -532,6 +531,8 @@ class _ImageViewerState extends State<_ImageViewer> {
+@@ -532,6 +540,8 @@ class _ImageViewerState extends State<_ImageViewer> {
              key: ValueKey('attachment-gallery-image-$index'),
              image: image,
              fit: BoxFit.contain,
@@ -11477,7 +11492,7 @@ index dcbb4583..3930f184 100644
              errorBuilder: (_, _, _) => _placeholder(index, failed: true),
            ),
          );
-@@ -553,7 +554,8 @@ class _ImageViewerState extends State<_ImageViewer> {
+@@ -553,7 +563,8 @@ class _ImageViewerState extends State<_ImageViewer> {
      return Theme(
        data: buildDarkTheme(accent: DshSurfaces.of(context).accent, glassBlur: DshSurfaces.of(context).blurEnabled),
        child: Scaffold(
@@ -13328,12 +13343,42 @@ index 00000000..6e7f6aa0
 +    );
 +  }
 +}
+diff --git a/app/lib/ui/phone/phone_widgets.dart b/app/lib/ui/phone/phone_widgets.dart
+index d54121db..50f1c0ee 100644
+--- a/app/lib/ui/phone/phone_widgets.dart
++++ b/app/lib/ui/phone/phone_widgets.dart
+@@ -12,12 +12,16 @@ enum NoteTone { info, warn, danger }
+ 
+ /// Low-frequency settings stay discoverable without crowding the main page.
+ class PhoneOptionsFold extends StatefulWidget {
+-  const PhoneOptionsFold({super.key, required this.title, required this.children, this.initiallyOpen = false});
++  const PhoneOptionsFold({super.key, required this.title, required this.children, this.initiallyOpen = false,
++      this.margin = const EdgeInsets.fromLTRB(16, 0, 16, 0)});
+ 
+   final String title;
+   final List<Widget> children;
+   final bool initiallyOpen;
+ 
++  /// 折叠头这张卡的边距；默认和其它卡一致（上下为 0），需要间距的页面自己传。
++  final EdgeInsetsGeometry margin;
++
+   @override
+   State<PhoneOptionsFold> createState() => _PhoneOptionsFoldState();
+ }
+@@ -30,6 +34,7 @@ class _PhoneOptionsFoldState extends State<PhoneOptionsFold> {
+     crossAxisAlignment: CrossAxisAlignment.stretch,
+     children: [
+       ListPageCard(
++        margin: widget.margin,
+         children: [
+           Semantics(
+             expanded: _open,
 diff --git a/app/lib/ui/phone/privileged_channel_page.dart b/app/lib/ui/phone/privileged_channel_page.dart
 new file mode 100644
-index 00000000..d1d8163d
+index 00000000..f6e97ca5
 --- /dev/null
 +++ b/app/lib/ui/phone/privileged_channel_page.dart
-@@ -0,0 +1,414 @@
+@@ -0,0 +1,416 @@
 +import 'dart:async';
 +
 +import 'package:flutter/material.dart';
@@ -13508,10 +13553,12 @@ index 00000000..d1d8163d
 +          ),
 +        if (_error case final error?) PhoneNote(tone: NoteTone.warn, text: error),
 +        PhoneOptionsFold(
++          margin: _groupMargin,
 +          title: '更换连接方式',
-+          children: [ListPageCard(margin: _groupMargin, children: _channelChoices(bg))],
++          children: [ListPageCard(margin: EdgeInsets.zero, children: _channelChoices(bg))],
 +        ),
 +        PhoneOptionsFold(
++          margin: _groupMargin,
 +          title: '更多设置',
 +          children: const [PhoneAdvancedSettings()],
 +        ),
@@ -14499,21 +14546,53 @@ index 08e7db05..e51c11c1 100644
      );
      return UiTrace(scope: 'page', child: page);
 diff --git a/app/lib/ui/theme/page_transitions.dart b/app/lib/ui/theme/page_transitions.dart
-index 7fee925e..a62c4114 100644
+index 7fee925e..fa6af0c1 100644
 --- a/app/lib/ui/theme/page_transitions.dart
 +++ b/app/lib/ui/theme/page_transitions.dart
-@@ -64,7 +64,9 @@ class AppPageTransitionsBuilder extends PageTransitionsBuilder {
+@@ -47,13 +47,15 @@ class AppPageTransitionsBuilder extends PageTransitionsBuilder {
+ 
+   final Duration _duration;
+ 
++  /// 零时长：二级页瞬时切换，不再有任何"页面在动"的过程——淡入、位移、缩放、压黑
++  /// 这些都会让整屏或局部颜色在动画里变一下，也就是反复出现的"闪烁/轻微变色"。
++  /// 返回手势仍然可用（它不依赖时长）。
+   @override
+-  Duration get transitionDuration => _duration;
++  Duration get transitionDuration => Duration.zero;
+ 
++  /// 被压住的下层页面保持原样：之前它会跟着位移并变暗，返回时就是"轻微变色"的来源。
+   @override
+-  DelegatedTransitionBuilder? get delegatedTransition =>
+-      (context, animation, secondaryAnimation, allowSnapshotting, child) =>
+-          _Recede(animation: secondaryAnimation, linear: false, child: child ?? const SizedBox.shrink());
++  DelegatedTransitionBuilder? get delegatedTransition => null;
+ 
+   @override
+   Widget buildTransitions<T>(
+@@ -63,21 +65,7 @@ class AppPageTransitionsBuilder extends PageTransitionsBuilder {
+     Animation<double> secondaryAnimation,
      Widget child,
    ) {
-     final linear = route.popGestureInProgress;
+-    final linear = route.popGestureInProgress;
 -    final origin = CardOrigin._claim(route);
-+    // 卡片长成页面的动画会给整页做一次缩放 + 抗锯齿裁剪，观感上就是"闪一下"，
-+    // 而且每帧都要重新裁剪整页。二级页统一走滑入，不再从卡片 origin 变形。
-+    final CardOrigin? origin = null;
-     return _BackGesture(
-       route: route,
-       child: SheetRecedePage(
-@@ -194,7 +196,6 @@ class _CardMorphState extends State<_CardMorph> {
+-    return _BackGesture(
+-      route: route,
+-      child: SheetRecedePage(
+-        child: _Recede(
+-          animation: secondaryAnimation,
+-          linear: linear,
+-          route: route,
+-          child: origin == null
+-              ? _PushIn(animation: animation, linear: linear, child: child)
+-              : _CardMorph(animation: animation, linear: linear, origin: origin, child: child),
+-        ),
+-      ),
+-    );
++    return _BackGesture(route: route, child: child);
+   }
+ }
+ 
+@@ -194,7 +182,6 @@ class _CardMorphState extends State<_CardMorph> {
  
    @override
    Widget build(BuildContext context) {
@@ -14521,7 +14600,7 @@ index 7fee925e..a62c4114 100644
      final origin = widget.origin;
      return LayoutBuilder(
        builder: (context, constraints) {
-@@ -209,9 +210,7 @@ class _CardMorphState extends State<_CardMorph> {
+@@ -209,9 +196,7 @@ class _CardMorphState extends State<_CardMorph> {
              return Stack(
                fit: StackFit.expand,
                children: [
@@ -14532,7 +14611,7 @@ index 7fee925e..a62c4114 100644
                  Transform(
                    transform: Matrix4.identity()
                      ..translateByDouble(rect.left, rect.top, 0, 1)
-@@ -401,7 +400,6 @@ class _RecedeState extends State<_Recede> {
+@@ -401,7 +386,6 @@ class _RecedeState extends State<_Recede> {
  
    @override
    Widget build(BuildContext context) {
@@ -14540,7 +14619,7 @@ index 7fee925e..a62c4114 100644
      final Animation<double> motion = CardOrigin._covered(widget.route) ? kAlwaysDismissedAnimation : _curved;
      return SlideTransition(
        position: Tween<Offset>(begin: Offset.zero, end: const Offset(-0.25, 0)).animate(motion),
-@@ -411,14 +409,8 @@ class _RecedeState extends State<_Recede> {
+@@ -411,14 +395,8 @@ class _RecedeState extends State<_Recede> {
          fit: StackFit.passthrough,
          children: [
            SnapshotWidget(controller: _snapshot, mode: SnapshotMode.permissive, autoresize: true, child: widget.child),
