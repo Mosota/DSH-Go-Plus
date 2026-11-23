@@ -5456,7 +5456,7 @@ index 00000000..d61c7c96
 +    }
 +}
 diff --git a/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/RuntimeController.kt b/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/RuntimeController.kt
-index 965805ae..073497d7 100644
+index 965805ae..9ef361b1 100644
 --- a/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/RuntimeController.kt
 +++ b/app/android/app/src/main/kotlin/io/github/ccch1mneyyy/dsh_app/runtime/RuntimeController.kt
 @@ -50,6 +50,7 @@ class RuntimeController private constructor(private val app: Context) : DshProce
@@ -5483,13 +5483,16 @@ index 965805ae..073497d7 100644
          }
          setPhase(Phase.INSTALLING)
          worker.execute {
-@@ -563,6 +571,17 @@ class RuntimeController private constructor(private val app: Context) : DshProce
+@@ -563,6 +571,20 @@ class RuntimeController private constructor(private val app: Context) : DshProce
                      log("[dsh-app] completed engine cleanup failed: ${e.message}", "system")
                  }
                  noteDns(GuestSetup.writeResolvConf(app, installer.rootfs), DnsConfigSource.START)
 +                GuestSetup.writeNpmConfig(app, installer.rootfs)
-+                if (GuestSetup.writeEnginePatch(app, installer.rootfs)) {
-+                    log("[dsh-app] engine patch written: compaction threshold 0.95", "system")
++                // 暂时不覆盖引擎的 dsh-web.patch.yml：1.3.0 换了配置结构，我们的副本一旦
++                // 与它不一致，插件配置会被整份替换掉（表现为"生成不吐字"）。
++                // 等确认 1.3.0 的 compaction 配置键之后再恢复这一行。
++                if (false && GuestSetup.writeEnginePatch(app, installer.rootfs)) {
++                    log("[dsh-app] engine patch written", "system")
 +                }
 +                val directFiles = GuestSetup.writeDnsShim(app, installer.rootfs)
 +                log(
@@ -5501,7 +5504,7 @@ index 965805ae..073497d7 100644
                  val storage = pendingPhoneStorage && PhoneStorage.isGranted(app) && PhoneStorage.binds().isNotEmpty()
                  PhoneStorage.syncShortcut(installer.rootfs, storage)
                  // Phone control: bridge up and guest files written before DSH starts; off in safe mode.
-@@ -583,8 +602,52 @@ class RuntimeController private constructor(private val app: Context) : DshProce
+@@ -583,8 +605,52 @@ class RuntimeController private constructor(private val app: Context) : DshProce
                  val env = LinkedHashMap<String, String>()
                  env["TZ"] = java.util.TimeZone.getDefault().id
                  env.putAll(pendingEnv)
@@ -5554,7 +5557,7 @@ index 965805ae..073497d7 100644
                  if (safe) {
                      SafeMode.prepare(installer.rootfs, briefing())
                      env.putAll(SafeMode.GUEST_ENV)
-@@ -1225,7 +1288,59 @@ class RuntimeController private constructor(private val app: Context) : DshProce
+@@ -1225,7 +1291,62 @@ class RuntimeController private constructor(private val app: Context) : DshProce
          }
      }
  
@@ -5567,8 +5570,11 @@ index 965805ae..073497d7 100644
 +    /** 用引擎自己的 node 跑一次 fetch：与 python 不同，它走 undici + 我们的 NODE_OPTIONS。 */
 +    private fun probeGuestNodeFetch(rootfs: File, env: Map<String, String>) {
 +        Thread({
-+            val node = File(rootfs, "usr/local/bin/node").takeIf { it.isFile }?.absolutePath
-+                ?: File(rootfs, "usr/bin/node").takeIf { it.isFile }?.absolutePath
++            val candidates = listOf(
++                "usr/local/bin/node", "usr/bin/node", "opt/node/bin/node",
++                "usr/local/lib/nodejs/bin/node", "bin/node",
++            )
++            val node = candidates.map { File(rootfs, it) }.firstOrNull { it.isFile }?.absolutePath
 +                ?: return@Thread
 +            val script = "fetch('https://api.deepseek.com/models').then(r=>console.log('NETOK '+r.status)).catch(e=>console.log('NETFAIL '+(e&&e.message)))"
 +            val result = runCatching {
