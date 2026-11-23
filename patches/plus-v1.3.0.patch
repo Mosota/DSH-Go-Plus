@@ -38478,7 +38478,7 @@ index 84b893b5..e3bbbe40 100644
 +}
 diff --git a/app/lib/ui/chat/widgets/atom_glyph.dart b/app/lib/ui/chat/widgets/atom_glyph.dart
 new file mode 100644
-index 00000000..608ba802
+index 00000000..10207b8e
 --- /dev/null
 +++ b/app/lib/ui/chat/widgets/atom_glyph.dart
 @@ -0,0 +1,152 @@
@@ -38604,7 +38604,7 @@ index 00000000..608ba802
 +    for (var i = 0; i < _tilts.length; i++) {
 +      canvas.save();
 +      canvas.translate(center.dx, center.dy);
-+      canvas.rotate(spin + _tilts[i] * math.pi / 180);
++      canvas.rotate((spin ?? 0.0) + _tilts[i] * math.pi / 180);
 +      canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: rx * 2, height: ry * 2), orbit);
 +      if (phase case final p?) {
 +        // 每颗电子错开 120°，匀速绕行；椭圆上按参数取点。
