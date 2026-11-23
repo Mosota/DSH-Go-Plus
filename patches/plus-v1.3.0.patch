@@ -38386,7 +38386,7 @@ index f59fc615..cbd827ca 100644
      ];
      final second = spans.map((s) => s.text).join();
 diff --git a/app/lib/ui/chat/widgets/assistant_message.dart b/app/lib/ui/chat/widgets/assistant_message.dart
-index 84b893b5..860d322c 100644
+index 84b893b5..e3bbbe40 100644
 --- a/app/lib/ui/chat/widgets/assistant_message.dart
 +++ b/app/lib/ui/chat/widgets/assistant_message.dart
 @@ -21,6 +21,7 @@ import '../../share/share_entry.dart' show shareReply;
@@ -38440,9 +38440,45 @@ index 84b893b5..860d322c 100644
          // 一轮结束时和输入条上的胶囊同一节奏展开:胶囊收回多少,这里长出
          // 多少,回答不会先被顶上去再落回来。打开对话时已结束的轮直接展开。
          ExpandReveal(
+@@ -467,3 +479,35 @@ class _StallDotState extends State<_StallDot> with SingleTickerProviderStateMixi
+     );
+   }
+ }
++
++/// 过程里正文的轻锚点：在正文左侧的 gutter 里画一道 2dp 浅色竖线。
++class _ProcessTextAnchor extends StatelessWidget {
++  const _ProcessTextAnchor({required this.child});
++
++  final Widget child;
++
++  @override
++  Widget build(BuildContext context) {
++    final line = Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.55);
++    return CustomPaint(painter: _AnchorRule(line), child: child);
++  }
++}
++
++class _AnchorRule extends CustomPainter {
++  const _AnchorRule(this.color);
++
++  final Color color;
++
++  @override
++  void paint(Canvas canvas, Size size) {
++    if (size.height <= 6) return;
++    final paint = Paint()
++      ..color = color
++      ..strokeWidth = 2
++      ..strokeCap = StrokeCap.round;
++    canvas.drawLine(const Offset(-8, 2), Offset(-8, size.height - 2), paint);
++  }
++
++  @override
++  bool shouldRepaint(_AnchorRule oldDelegate) => oldDelegate.color != color;
++}
 diff --git a/app/lib/ui/chat/widgets/atom_glyph.dart b/app/lib/ui/chat/widgets/atom_glyph.dart
 new file mode 100644
-index 00000000..7889520f
+index 00000000..608ba802
 --- /dev/null
 +++ b/app/lib/ui/chat/widgets/atom_glyph.dart
 @@ -0,0 +1,152 @@
@@ -38564,11 +38600,11 @@ index 00000000..7889520f
 +
 +    // 整个原子一起自转（慢，约 7 秒一圈），电子再沿着各自轨道绕行：
 +    // 只有电子动看起来像"三个点"，整体转动才像原子。
-+    final spin = spinAngle ?? 0.0;
++
 +    for (var i = 0; i < _tilts.length; i++) {
 +      canvas.save();
 +      canvas.translate(center.dx, center.dy);
-+      canvas.rotate(atomSpin + _tilts[i] * math.pi / 180);
++      canvas.rotate(spin + _tilts[i] * math.pi / 180);
 +      canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: rx * 2, height: ry * 2), orbit);
 +      if (phase case final p?) {
 +        // 每颗电子错开 120°，匀速绕行；椭圆上按参数取点。
